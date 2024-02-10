@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flame/components.dart';
 
@@ -9,12 +8,10 @@ const rails = [
   "straight1x1",
 ];
 
-Path path = Path()..lineTo(1, 0);
-
 class Straight1x1 extends Rail {
   Straight1x1({
     required super.position,
-    double? angle,
+    super.angle,
   })  : assert(
           angle == null || angle % (pi / 2) == 0,
         ),
@@ -24,4 +21,16 @@ class Straight1x1 extends Rail {
             Vector2(0, 0),
           ],
         );
+
+  /// Local-space path describing this rail
+  @override
+  Path get path {
+    final Path path = Path();
+    Vector2 start = Vector2(cellSize / 2, 0);
+    Vector2 end = Vector2(cellSize / 2, cellSize);
+
+    path.moveTo(start.x, start.y);
+    path.lineTo(end.x, end.y);
+    return path;
+  }
 }

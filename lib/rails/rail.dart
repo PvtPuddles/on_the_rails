@@ -1,11 +1,18 @@
 import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:on_the_rails/app.dart' show cellSize;
+import 'package:on_the_rails/components/path_component.dart';
 
 import 'bend.dart' as bend;
 import 'straight.dart' as straight;
 
-final Vector2 cellSize = Vector2.all(64);
+export 'package:flutter/material.dart';
+export 'package:on_the_rails/app.dart' show cellSize;
+
+const drawCells = false;
+const drawPaths = true;
 
 const allRails = [
   ...bend.rails,
@@ -17,11 +24,14 @@ abstract class Rail extends SpriteComponent with HasGameReference {
     required this.name,
     required this.shape,
     required super.position,
+    super.children,
     super.angle,
   }) : super(
           size: sizeOf(shape),
           anchor: anchorFrom(shape),
-        );
+        ) {
+    if (kDebugMode) addAll(_debugComponents(shape));
+  }
 
   final String name;
 
@@ -69,8 +79,16 @@ abstract class Rail extends SpriteComponent with HasGameReference {
       (bounds.$1.y - bounds.$1.x) + 1,
       (bounds.$2.y - bounds.$2.x) + 1,
     );
-    size.multiply(cellSize);
+    size.multiply(Vector2.all(cellSize));
     return size;
+  }
+
+  Path get path;
+
+  List<PositionComponent> _debugComponents(List<Vector2> shape) {
+    return [
+      if (drawPaths) PathComponent(path, position: Vector2(0, 0)),
+    ];
   }
 }
 
@@ -79,7 +97,7 @@ class RailCell extends SpriteComponent with HasGameReference {
     required super.position,
   })  : name = "rail_cell",
         super(
-          size: cellSize,
+          size: Vector2.all(cellSize),
           anchor: Anchor.center,
         );
 
@@ -87,15 +105,16 @@ class RailCell extends SpriteComponent with HasGameReference {
     required super.position,
   })  : name = "rail_cell_occupied",
         super(
-          size: cellSize,
+          size: Vector2.all(cellSize),
           anchor: Anchor.center,
         );
 
   RailCell.origin({
     required super.position,
+    required super.angle,
   })  : name = "rail_segment_start",
         super(
-          size: cellSize,
+          size: Vector2.all(cellSize),
           anchor: Anchor.center,
         );
 
