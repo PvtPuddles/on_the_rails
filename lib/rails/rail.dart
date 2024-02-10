@@ -17,6 +17,7 @@ abstract class Rail extends SpriteComponent with HasGameReference {
     required this.name,
     required this.shape,
     required super.position,
+    super.angle,
   }) : super(
           size: sizeOf(shape),
           anchor: anchorFrom(shape),
@@ -38,11 +39,16 @@ abstract class Rail extends SpriteComponent with HasGameReference {
     final bounds = Rail.boundsOf(shape);
     // Relative position of x=0 from bounds.start
     final xValue = -bounds.$1.x + 1;
-    final domain = (-bounds.$1.x) + bounds.$2.y + 1;
+    final domain = (-bounds.$1.x) + bounds.$1.y + 1;
+    // Relative position of y=0 from bounds.start
+    final yValue = -bounds.$2.x + 1;
+    final range = (-bounds.$2.x) + bounds.$2.y + 1;
 
-    const y = 1.0; // Bottom
     final x = (xValue - .5) / domain;
-    return Anchor(x, y);
+    final y = (yValue - .5) / range; // Center
+
+    final anchorPos = Vector2(x, y);
+    return Anchor(anchorPos.x, anchorPos.y);
   }
 
   @visibleForTesting
@@ -65,5 +71,38 @@ abstract class Rail extends SpriteComponent with HasGameReference {
     );
     size.multiply(cellSize);
     return size;
+  }
+}
+
+class RailCell extends SpriteComponent with HasGameReference {
+  RailCell({
+    required super.position,
+  })  : name = "rail_cell",
+        super(
+          size: cellSize,
+          anchor: Anchor.center,
+        );
+
+  RailCell.occupied({
+    required super.position,
+  })  : name = "rail_cell_occupied",
+        super(
+          size: cellSize,
+          anchor: Anchor.center,
+        );
+
+  RailCell.origin({
+    required super.position,
+  })  : name = "rail_segment_start",
+        super(
+          size: cellSize,
+          anchor: Anchor.center,
+        );
+
+  String name;
+
+  @override
+  void onLoad() {
+    sprite = Sprite(game.images.fromCache("rails/debug/$name.png"));
   }
 }
