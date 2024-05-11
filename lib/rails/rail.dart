@@ -1,5 +1,9 @@
+import 'dart:math';
+import 'dart:ui';
+
 import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
+import 'package:flame/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:on_the_rails/app.dart' show cellSize;
@@ -11,7 +15,7 @@ import 'straight.dart' as straight;
 export 'package:flutter/material.dart';
 export 'package:on_the_rails/app.dart' show cellSize;
 
-const drawCells = false;
+const drawCells = true;
 const drawPaths = true;
 
 const allRails = [
@@ -66,9 +70,10 @@ abstract class Rail extends SpriteComponent with HasGameReference {
     assert(shape.any((cell) => cell.x == 0 && cell.y == 0));
     final minX = shape.map((e) => e.x).min;
     final maxX = shape.map((e) => e.x).max;
-    final minY = shape.map((e) => e.x).min;
-    final maxY = shape.map((e) => e.x).max;
+    final minY = shape.map((e) => e.y).min;
+    final maxY = shape.map((e) => e.y).max;
     assert(minX <= 0 && maxX >= 0);
+    assert(minY <= 0 && maxY >= 0);
     return (Vector2(minX, maxX), Vector2(minY, maxY));
   }
 
@@ -83,7 +88,25 @@ abstract class Rail extends SpriteComponent with HasGameReference {
     return size;
   }
 
-  Path get path;
+  /// Local-space path describing this rail
+  late final Path path = buildPath();
+  late final PathMetric metric = path.computeMetrics().first;
+
+  Tangent tangentForOffset(double distance) {
+    assert(distance >= 0 && distance < metric.length);
+    final tangent = metric.getTangentForOffset(distance)!;
+
+    final origin = metric.getTangentForOffset(0)!;
+
+    final anchorOffset = Offset.fromDirection(angle - pi / 2, cellSize / 2);
+    final localPosition = tangent.position - origin.position;
+    final rotatedPos = localPosition.toVector2()..rotate(angle);
+    return Tangent((rotatedPos + position).toOffset() - anchorOffset,
+        Offset.fromDirection(tangent.angle - angle));
+  }
+
+  @protected
+  Path buildPath();
 
   List<PositionComponent> _debugComponents(List<Vector2> shape) {
     return [

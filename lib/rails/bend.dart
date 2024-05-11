@@ -22,11 +22,11 @@ class Bend2x2 extends Rail {
 
   static const imageSize = 32;
 
-  /// The number of margin before the arc starts in the PNG image
+  /// The amount of margin before the arc starts in the PNG image
   static const arcMargin = (4 / imageSize) * cellSize;
 
   @override
-  Path get path {
+  Path buildPath() {
     final Path path = Path();
     final start = Vector2((1.5) * cellSize, (2) * cellSize);
     final arcStart = Vector2(start.x, start.y - arcMargin);

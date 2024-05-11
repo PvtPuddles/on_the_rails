@@ -1,11 +1,15 @@
+// @formatter:Off
 import 'dart:math';
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+import 'package:flame/input.dart';
 import 'package:flutter/foundation.dart';
 import 'package:on_the_rails/rails/bend.dart';
 import 'package:on_the_rails/rails/rail.dart';
 import 'package:on_the_rails/rails/straight.dart';
+import 'package:on_the_rails/rider.dart';
+// @formatter:on
 
 const double cellSize = 128;
 
@@ -38,7 +42,7 @@ final railMap = Map<Vector2, Rail>.fromIterable(_rails,
       return rail;
     });
 
-class OnTheRails extends FlameGame {
+class OnTheRails extends FlameGame with HasKeyboardHandlerComponents {
   OnTheRails();
 
   @override
@@ -47,6 +51,7 @@ class OnTheRails extends FlameGame {
       ...allRails.map((e) => "rails/$e.png"),
       if (kDebugMode)
         ...[
+          "rider",
           "rail_cell",
           "rail_cell_occupied",
           "rail_segment_start",
@@ -56,6 +61,7 @@ class OnTheRails extends FlameGame {
     camera.viewfinder.anchor = Anchor.center;
 
     _addRails();
+    world.add(Rider(rail: railMap.values.first));
   }
 
   void _addRails() {

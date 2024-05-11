@@ -22,9 +22,8 @@ class Straight1x1 extends Rail {
           ],
         );
 
-  /// Local-space path describing this rail
   @override
-  Path get path {
+  Path buildPath() {
     final Path path = Path();
     Vector2 start = Vector2(cellSize / 2, 0);
     Vector2 end = Vector2(cellSize / 2, cellSize);
