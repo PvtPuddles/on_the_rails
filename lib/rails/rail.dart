@@ -1,3 +1,4 @@
+//@formatter:off
 import 'dart:math';
 import 'dart:ui';
 
@@ -6,17 +7,17 @@ import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:on_the_rails/app.dart' show cellSize;
-import 'package:on_the_rails/components/path_component.dart';
+import 'package:on_the_rails/world.dart';
 
+import '../components/path_component.dart';
 import 'bend.dart' as bend;
 import 'straight.dart' as straight;
 
 export 'package:flutter/material.dart';
-export 'package:on_the_rails/app.dart' show cellSize;
+// @formatter:on
 
-const drawCells = true;
-const drawPaths = true;
+const drawCells = false;
+const drawPaths = false;
 
 const allRails = [
   ...bend.rails,
@@ -27,10 +28,11 @@ abstract class Rail extends SpriteComponent with HasGameReference {
   Rail({
     required this.name,
     required this.shape,
-    required super.position,
+    required this.coord,
     super.children,
     super.angle,
   }) : super(
+          position: coord.position,
           size: sizeOf(shape),
           anchor: anchorFrom(shape),
         ) {
@@ -39,10 +41,16 @@ abstract class Rail extends SpriteComponent with HasGameReference {
 
   final String name;
 
+  final CellCoord coord;
+
   /// The cells that this rail covers, relative to the anchor cell (0, 0)
   ///
+  /// TODO : What's wrong with two rails overlapping?  I think nothing.
   /// These will be considered "occupied" cells.
   final List<Vector2> shape;
+
+  RailConnection get startingConnection;
+  RailConnection get endingConnection;
 
   @override
   void onLoad() {
@@ -98,7 +106,7 @@ abstract class Rail extends SpriteComponent with HasGameReference {
 
     final origin = metric.getTangentForOffset(0)!;
 
-    final anchorOffset = Offset.fromDirection(angle - pi / 2, cellSize / 2);
+    final anchorOffset = Offset.fromDirection(angle, cellSize / 2);
     final localPosition = tangent.position - origin.position;
     final rotatedPos = localPosition.toVector2()..rotate(angle);
     return Tangent((rotatedPos + position).toOffset() - anchorOffset,
@@ -146,5 +154,45 @@ class RailCell extends SpriteComponent with HasGameReference {
   @override
   void onLoad() {
     sprite = Sprite(game.images.fromCache("rails/debug/$name.png"));
+  }
+}
+
+class RailConnection extends SpriteComponent with HasGameReference {
+  RailConnection(
+    this.rail, {
+    required double angle,
+    required this.coord,
+    required this.atRailStart,
+  }) : super(
+          angle: angle % (2 * pi),
+          size: Vector2.all(cellSize),
+          anchor: Anchor.center,
+          position: rail.position + coord.position,
+        );
+
+  final Rail rail;
+
+  // Some jackass decided that rails should face upwards when rotated 0 degrees
+  // Nvm, finally fixed it
+  double get worldSpaceAngle => angle;
+
+  /// The cell the connection attaches to, relative to [rail]'s origin.
+  final CellCoord coord;
+  final bool atRailStart;
+
+  // TODO : Handle switches
+  late RailConnection? activeConnection = connections.singleOrNull;
+  Set<RailConnection> connections = {};
+
+  @override
+  void onLoad() {
+    sprite = Sprite(game.images.fromCache("rails/debug/rail_connection.png"));
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (kDebugMode && drawPaths) {
+      super.render(canvas);
+    }
   }
 }

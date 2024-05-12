@@ -2,13 +2,14 @@ import 'dart:math';
 
 import 'package:flame/components.dart';
 import 'package:on_the_rails/rails/rail.dart';
+import 'package:on_the_rails/world.dart';
 
 const rails = [
   "bend2x2",
 ];
 
 class Bend2x2 extends Rail {
-  Bend2x2({required super.position, super.angle})
+  Bend2x2({required super.coord, super.angle})
       : assert(
           angle == null || angle % (pi / 2) == 0,
         ),
@@ -16,7 +17,7 @@ class Bend2x2 extends Rail {
           name: rails[0],
           shape: [
             Vector2(0, 0),
-            Vector2(-1, -1),
+            Vector2(1, -1),
           ],
         );
 
@@ -26,12 +27,27 @@ class Bend2x2 extends Rail {
   static const arcMargin = (4 / imageSize) * cellSize;
 
   @override
+  late final startingConnection = RailConnection(
+    this,
+    angle: angle,
+    coord: CellCoord.zero,
+    atRailStart: true,
+  );
+  @override
+  late final endingConnection = RailConnection(
+    this,
+    angle: angle + (pi / 2),
+    coord: (const CellCoord(1, -1).toVector()..rotate(angle)).toCoord(),
+    atRailStart: false,
+  );
+
+  @override
   Path buildPath() {
     final Path path = Path();
-    final start = Vector2((1.5) * cellSize, (2) * cellSize);
-    final arcStart = Vector2(start.x, start.y - arcMargin);
-    final end = Vector2((0) * cellSize, (.5) * cellSize);
-    final arcEnd = Vector2(end.x + arcMargin, end.y);
+    final start = Vector2(0, 1.5) * cellSize;
+    final arcStart = Vector2(start.x + arcMargin, start.y);
+    final end = Vector2(1.5, 0) * cellSize;
+    final arcEnd = Vector2(end.x, end.y + arcMargin);
 
     /// Bends are circular
     final radius = Radius.circular(arcEnd.x - arcStart.x);
