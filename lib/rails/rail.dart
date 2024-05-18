@@ -7,6 +7,7 @@ import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:on_the_rails/priorities.dart';
 import 'package:on_the_rails/world.dart';
 
 import '../components/path_component.dart';
@@ -36,7 +37,7 @@ abstract class Rail extends SpriteComponent with HasGameReference {
           size: sizeOf(shape),
           anchor: anchorFrom(shape),
         ) {
-    if (kDebugMode) addAll(_debugComponents(shape));
+    if (kDebugMode) addAll(debugComponents());
   }
 
   final String name;
@@ -44,9 +45,6 @@ abstract class Rail extends SpriteComponent with HasGameReference {
   final CellCoord coord;
 
   /// The cells that this rail covers, relative to the anchor cell (0, 0)
-  ///
-  /// TODO : What's wrong with two rails overlapping?  I think nothing.
-  /// These will be considered "occupied" cells.
   final List<Vector2> shape;
 
   RailConnection get startingConnection;
@@ -116,10 +114,21 @@ abstract class Rail extends SpriteComponent with HasGameReference {
   @protected
   Path buildPath();
 
-  List<PositionComponent> _debugComponents(List<Vector2> shape) {
+  List<PositionComponent> debugComponents() {
     return [
-      if (drawPaths) PathComponent(path, position: Vector2(0, 0)),
+      RailPath(path, position: Vector2.zero()),
     ];
+  }
+}
+
+class RailPath extends PathComponent {
+  RailPath(super.path, {required super.position});
+
+  @override
+  void render(Canvas canvas) {
+    if (kDebugMode && drawPaths) {
+      super.render(canvas);
+    }
   }
 }
 
@@ -128,6 +137,7 @@ class RailCell extends SpriteComponent with HasGameReference {
     required super.position,
   })  : name = "rail_cell",
         super(
+          priority: Priority.sleeper + 1,
           size: Vector2.all(cellSize),
           anchor: Anchor.center,
         );
@@ -136,6 +146,7 @@ class RailCell extends SpriteComponent with HasGameReference {
     required super.position,
   })  : name = "rail_cell_occupied",
         super(
+          priority: Priority.sleeper + 1,
           size: Vector2.all(cellSize),
           anchor: Anchor.center,
         );
@@ -145,6 +156,7 @@ class RailCell extends SpriteComponent with HasGameReference {
     required super.angle,
   })  : name = "rail_segment_start",
         super(
+          priority: Priority.sleeper + 1,
           size: Vector2.all(cellSize),
           anchor: Anchor.center,
         );
@@ -154,6 +166,13 @@ class RailCell extends SpriteComponent with HasGameReference {
   @override
   void onLoad() {
     sprite = Sprite(game.images.fromCache("rails/debug/$name.png"));
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (kDebugMode && drawCells) {
+      super.render(canvas);
+    }
   }
 }
 

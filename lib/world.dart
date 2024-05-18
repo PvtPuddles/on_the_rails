@@ -16,7 +16,7 @@ class RailWorld extends World {
 
   void addRail(Rail rail) {
     // Add debug cells to world
-    if (kDebugMode && drawCells) {
+    if (kDebugMode) {
       for (final cell in rail.shape) {
         bool isRailOrigin = cell.x == 0 && cell.y == 0;
         cell.rotate(rail.angle);

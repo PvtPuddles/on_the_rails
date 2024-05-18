@@ -1,23 +1,16 @@
-// @Formatter:Off
-import 'dart:math';
+part of 'train.dart';
 
-import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
-import 'package:flutter/services.dart';
-import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/world.dart';
-// @Formatter:On
-
-class Rider extends SpriteComponent with HasGameReference, KeyboardHandler {
+class Rider extends SpriteComponent with HasGameReference {
   Rider({
-    required this.rail,
+    this.rail,
     super.children,
     super.angle,
   }) : super(
+          priority: Priority.rider,
           size: Vector2.all(cellSize),
           anchor: Anchor.center,
         ) {
-    distanceInRail = 0;
+    _distanceInRail = 0;
   }
 
   @override
@@ -27,22 +20,26 @@ class Rider extends SpriteComponent with HasGameReference, KeyboardHandler {
 
   int _railDirection = 1;
   double speed = 0;
-  Rail rail;
+  Rail? rail;
   double _distanceInRail = 0;
 
-  double get distanceInRail => _distanceInRail;
+  double get _distance => _distanceInRail;
 
-  set distanceInRail(double distance) {
+  set _distance(double distance) {
+    if (rail == null) {
+      throw StateError("Rider cannot advance along null rail");
+    }
     _distanceInRail = distance;
 
-    final len = rail.metric.length;
+    while (_distanceInRail >= rail!.metric.length || _distanceInRail < 0) {
+      final len = rail!.metric.length;
 
-    bool outOfBounds = distance >= len || distance < 0;
-    if (outOfBounds) {
       // The amount we've "overshot" this rail in either direction
-      final excessProgress = distance < 0 ? distance.abs() : distance - len;
-      final connection =
-          _distanceInRail < 0 ? rail.startingConnection : rail.endingConnection;
+      final excessProgress =
+          _distanceInRail < 0 ? -_distanceInRail : _distanceInRail - len;
+      final connection = _distanceInRail < 0
+          ? rail!.startingConnection
+          : rail!.endingConnection;
 
       final newConnection = connection.activeConnection;
       if (newConnection == null) {
@@ -55,7 +52,7 @@ class Rider extends SpriteComponent with HasGameReference, KeyboardHandler {
           _distanceInRail = excessProgress;
         } else {
           rail = newConnection.rail;
-          _distanceInRail = rail.metric.length - excessProgress;
+          _distanceInRail = rail!.metric.length - excessProgress;
         }
         // Rails changed directions
         if (connection.atRailStart == newConnection.atRailStart) {
@@ -63,12 +60,18 @@ class Rider extends SpriteComponent with HasGameReference, KeyboardHandler {
         }
       }
     }
-    final tangent = rail.tangentForOffset(_distanceInRail);
+    final tangent = rail!.tangentForOffset(_distanceInRail);
     position = tangent.position.toVector2();
     if (_railDirection == 1) {
       angle = tangent.angle;
     } else {
       angle = (tangent.angle - pi) % (2 * pi);
+    }
+  }
+
+  void moveForward(double distance) {
+    if (distance != 0) {
+      _distance += distance * _railDirection;
     }
   }
 
@@ -80,22 +83,16 @@ class Rider extends SpriteComponent with HasGameReference, KeyboardHandler {
 
   @override
   void update(double dt) {
-    distanceInRail += speed * _railDirection;
-    // final speedOffset = Offset.fromDirection(angle - pi / 2, speed);
-    // position += Vector2(speedOffset.dx, speedOffset.dy);
-
-    super.update(dt);
+    if (speed != 0) {
+      moveForward(speed * dt);
+    }
   }
 
-  @override
-  bool onKeyEvent(event, Set<LogicalKeyboardKey> keysPressed) {
-    if (keysPressed.contains(LogicalKeyboardKey.keyW)) {
-      speed += .05;
-    }
-    if (keysPressed.contains(LogicalKeyboardKey.keyS)) {
-      speed -= .05;
-    }
-
-    return true;
+  /// Place this rider [distance] units behind [other].
+  void trail(Rider other, {required double distance}) {
+    rail = other.rail;
+    _railDirection = other._railDirection;
+    _distance = other._distance;
+    _distance -= distance * _railDirection;
   }
 }
