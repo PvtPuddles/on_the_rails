@@ -17,8 +17,8 @@ import 'straight.dart' as straight;
 export 'package:flutter/material.dart';
 // @formatter:on
 
-const drawCells = true;
-const drawDirections = true;
+const drawCells = false;
+const drawDirections = false;
 const drawPaths = false;
 
 const allRails = [

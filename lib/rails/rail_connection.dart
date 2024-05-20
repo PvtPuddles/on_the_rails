@@ -14,7 +14,8 @@ class RailConnection extends SpriteComponent with HasGameReference {
     required double angle,
     required this.coord,
     required this.atRailStart,
-  })  : _railDirection = directionToCenter(rail, atRailStart) - angle,
+  })  : _railDirection =
+            (directionToCenter(rail, atRailStart) - angle) % (2 * pi),
         super(
           angle: angle % (2 * pi),
           size: Vector2.all(cellSize),
@@ -53,7 +54,9 @@ class RailConnection extends SpriteComponent with HasGameReference {
   final CellCoord coord;
   final bool atRailStart;
 
-  RailConnection? get activeConnection => connections.firstOrNull;
+  // TODO : Lock switches so that they cannot be triggered while a train is
+  //  traversing them
+  late RailConnection? activeConnection = connections.firstOrNull;
   List<RailConnection> connections = [];
 
   void addConnection(RailConnection other) {
@@ -84,25 +87,26 @@ class RailConnection extends SpriteComponent with HasGameReference {
     if (!other.connections.contains(this)) {
       other.addConnection(this);
     }
+  }
 
-    /// Debug components
-    if (connections.length > 1) {
-      for (final child in List.from(children)) {
-        remove(child);
-      }
-      const colors = [Colors.blue, Colors.brown, Colors.deepPurple];
-      addAll([
-        for (int i = 0; i < connections.length; i++)
-          RectangleComponent(
-            position: Vector2(0, cellSize / 2),
-            anchor: Anchor.centerLeft,
-            angle: pi - (connections[i].angle - connections[i].railDirection),
-            size: Vector2(cellSize, 10),
-            paint: Paint()
-              ..color = (colors.elementAtOrNull(i) ?? Colors.red)
-                  .withOpacity(activeConnection == connections[i] ? 1 : .5),
-          ),
-      ]);
+  void setActive(int steering) {
+    final straight = connections.firstWhereOrNull(
+      (c) =>
+          c._railDirection == (angle - pi) % (2 * pi) ||
+          c._railDirection == angle,
+    );
+
+    switch (steering) {
+      // Left-most
+      case < 0:
+        activeConnection = connections.first;
+      // Right-most
+      case > 0:
+        activeConnection = connections.last;
+      case 0 when straight != null:
+        activeConnection = straight;
+      case 0 when connections.length == 3:
+        activeConnection = connections[1];
     }
   }
 

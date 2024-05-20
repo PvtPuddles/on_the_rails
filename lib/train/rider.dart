@@ -25,6 +25,8 @@ class Rider extends SpriteComponent with HasGameReference {
 
   double get _distance => _distanceInRail;
 
+  int? steering;
+
   set _distance(double distance) {
     if (rail == null) {
       throw StateError("Rider cannot advance along null rail");
@@ -41,12 +43,18 @@ class Rider extends SpriteComponent with HasGameReference {
           ? rail!.startingConnection
           : rail!.endingConnection;
 
+      if (steering != null && connection.connections.length > 1) {
+        connection.setActive(steering!);
+      }
+
       final newConnection = connection.activeConnection;
       if (newConnection == null) {
         _distanceInRail = excessProgress;
         // TODO : probably shouldn't...
         throw Exception("You crashed, so now I crash");
       } else {
+        newConnection.activeConnection = connection;
+
         if (newConnection.atRailStart) {
           rail = newConnection.rail;
           _distanceInRail = excessProgress;

@@ -12,7 +12,7 @@ import 'package:on_the_rails/world.dart';
 
 const trailingDistance = 80;
 
-final _rails = Layouts.clover;
+final _rails = Layouts.cloverPlus;
 
 class OnTheRails extends FlameGame<RailWorld>
     with HasKeyboardHandlerComponents {

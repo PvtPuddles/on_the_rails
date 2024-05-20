@@ -32,16 +32,6 @@ class UserAgent extends TrainAgent with KeyboardHandler {
     final train = activeTrain;
     if (train == null) return false;
 
-    const movementKeys = [LogicalKeyboardKey.keyW, LogicalKeyboardKey.keyS];
-    if (movementKeys.contains(event.logicalKey)) {
-      if (event is KeyUpEvent) {
-        _throttleDirection = 0;
-        return true;
-      } else if (event is KeyDownEvent) {
-        switch (event.logicalKey) {}
-      }
-    }
-
     if (event is KeyDownEvent) {
       switch (event.logicalKey) {
         /// Movement
@@ -49,6 +39,10 @@ class UserAgent extends TrainAgent with KeyboardHandler {
           _throttleDirection = 1;
         case LogicalKeyboardKey.keyS when train.throttle > 0:
           _throttleDirection = -1;
+        case LogicalKeyboardKey.keyA:
+          train.steering = -1;
+        case LogicalKeyboardKey.keyD:
+          train.steering = 1;
         case LogicalKeyboardKey.shiftLeft when train.speed == 0:
           train.transmission *= -1;
 
@@ -58,6 +52,21 @@ class UserAgent extends TrainAgent with KeyboardHandler {
         case LogicalKeyboardKey.delete || LogicalKeyboardKey.backspace:
           final removed = train.cars.removeLast();
           game.world.remove(removed);
+
+        default:
+          return true;
+      }
+      return false;
+    } else if (event is KeyUpEvent) {
+      switch (event.logicalKey) {
+        /// Movement
+        case LogicalKeyboardKey.keyW || LogicalKeyboardKey.keyS:
+          _throttleDirection = -1;
+          _throttleDirection = 0;
+        case LogicalKeyboardKey.keyA when train.steering == -1:
+          train.steering = 0;
+        case LogicalKeyboardKey.keyD when train.steering == 1:
+          train.steering = 0;
 
         default:
           return true;

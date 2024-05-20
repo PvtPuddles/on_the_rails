@@ -72,4 +72,18 @@ abstract final class Layouts {
     Bend2x2(coord: const CellCoord(2, 3), angle: 0),
     Bend2x2(coord: const CellCoord(0, 2), angle: pi / 2),
   ];
+
+  static final cloverPlus = [
+    ...clover,
+    for (int x = 0; x < 3; x++) Straight1x1(coord: CellCoord(-1 + x, -3)),
+    for (int x = 0; x < 3; x++) Straight1x1(coord: CellCoord(-1 + x, 3)),
+    for (int y = 0; y < 3; y++)
+      Straight1x1(coord: CellCoord(-3, -1 + y), angle: pi / 2),
+    for (int y = 0; y < 3; y++)
+      Straight1x1(coord: CellCoord(3, -1 + y), angle: pi / 2),
+    Bend2x2(coord: const CellCoord(-1, 0)),
+    Bend2x2(coord: const CellCoord(0, -1), angle: pi / 2),
+    Bend2x2(coord: const CellCoord(1, 0), angle: pi),
+    Bend2x2(coord: const CellCoord(0, 1), angle: 3 * pi / 2),
+  ];
 }

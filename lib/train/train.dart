@@ -78,10 +78,13 @@ class Train extends Component with HasGameRef, KeyboardHandler {
     final maxSpeed = transmission.sign > 0 ? this.maxSpeed : maxReverseSpeed;
     final targetSpeed = throttle * maxSpeed;
 
+    final oldSpeed = speed;
     if (targetSpeed > speed) {
       speed += min(acceleration * dt, targetSpeed - speed);
+      if (oldSpeed == 0 && speed != 0) _onStart();
     } else if (targetSpeed < speed) {
       speed -= min(brakingSpeed * dt, speed - targetSpeed);
+      if (oldSpeed != 0 && speed == 0) _onStop();
     }
 
     if (speed != 0) {
@@ -93,6 +96,18 @@ class Train extends Component with HasGameRef, KeyboardHandler {
         car.trail(cars[index - 1], distance: followDist);
       }
     }
+  }
+
+  /// Called when the train starts moving
+  void _onStart() {
+    driver.steering = 0;
+  }
+
+  /// Called when the train stops moving
+  void _onStop() {
+    final oldDriver =
+        throttle.sign >= 0 ? cars.first.frontRider : cars.last.backRider;
+    oldDriver.steering = null;
   }
 
   int transmission = 1;
@@ -107,4 +122,11 @@ class Train extends Component with HasGameRef, KeyboardHandler {
       _throttle = target;
     }
   }
+
+  /// Sets the steering direction of the driving rider.
+  set steering(int? value) {
+    driver.steering = value;
+  }
+
+  int? get steering => driver.steering;
 }
