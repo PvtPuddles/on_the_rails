@@ -1,9 +1,7 @@
-import 'dart:math';
-
-import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:on_the_rails/rails/rail.dart';
+import 'package:on_the_rails/rails/rail_connection.dart';
 
 const double cellSize = 128;
 
@@ -34,31 +32,10 @@ class RailWorld extends World {
     rails.register(rail.coord, rail);
     add(rail);
 
-    for (final connection in [rail.startingConnection, rail.endingConnection]) {
-      _registerConnection(connection, rail);
-    }
-  }
-
-  void _registerConnection(RailConnection connection, Rail rail) {
-    final cCell = rail.coord + connection.coord;
-    final cAngle = connection.worldSpaceAngle;
-    connections.register(cCell, connection);
-    // Offset by 1.4 so that if we have diagonal rails in the future, they'll
-    // round up, while cardinal rails will round down.
-    final targetOffset =
-        cCell.toOffset() + Offset.fromDirection(cAngle - pi, 1.4);
-    final targetCell = targetOffset.toCoord();
-    final partnerAngle = (connection.worldSpaceAngle - pi) % (2 * pi);
-    final partner = connections[targetCell]?.firstWhereOrNull((p) {
-      return p.worldSpaceAngle == partnerAngle;
-    });
-
-    if (partner != null) {
-      partner.connections.add(connection);
-      connection.connections.add(partner);
-    }
-
-    if (kDebugMode) add(connection);
+    connections.addConnection(rail.startingConnection);
+    add(rail.startingConnection);
+    connections.addConnection(rail.endingConnection);
+    add(rail.endingConnection);
   }
 }
 

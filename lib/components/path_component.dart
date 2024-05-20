@@ -1,20 +1,17 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:on_the_rails/priorities.dart';
 
 class PathComponent extends PositionComponent {
   PathComponent(
     this.path, {
     Paint? paint,
     required super.position,
+    super.priority,
   })  : _paint = (paint ?? Paint()
           ..color = Colors.red
           ..strokeWidth = 2)
           ..style = PaintingStyle.stroke,
-        super(
-          priority: Priority.rail - 1,
-          size: _sizeOf(path),
-        );
+        super(size: _sizeOf(path));
 
   final Path path;
   final Paint _paint;

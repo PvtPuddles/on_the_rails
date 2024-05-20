@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flame/components.dart';
 import 'package:on_the_rails/rails/rail.dart';
+import 'package:on_the_rails/rails/rail_connection.dart';
 import 'package:on_the_rails/world.dart';
 
 const rails = [
@@ -9,8 +10,11 @@ const rails = [
 ];
 
 class Bend2x2 extends Rail {
-  Bend2x2({required super.coord, super.angle})
-      : assert(
+  Bend2x2({
+    super.key,
+    required super.coord,
+    super.angle,
+  })  : assert(
           angle == null || angle % (pi / 2) == 0,
         ),
         super(
@@ -43,6 +47,10 @@ class Bend2x2 extends Rail {
 
   @override
   Path buildPath() {
+    return pathTemplate();
+  }
+
+  static Path pathTemplate() {
     final Path path = Path();
     final start = Vector2(0, 1.5) * cellSize;
     final arcStart = Vector2(start.x + arcMargin, start.y);

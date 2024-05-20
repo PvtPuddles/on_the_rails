@@ -1,63 +1,18 @@
 // @formatter:off
-import 'dart:math';
-
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/foundation.dart';
 import 'package:on_the_rails/agents/user_agent.dart';
-import 'package:on_the_rails/rails/bend.dart';
+import 'package:on_the_rails/rails/layouts.dart';
 import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/rails/straight.dart';
 import 'package:on_the_rails/train/train.dart';
 import 'package:on_the_rails/world.dart';
 // @formatter:on
 
 const trailingDistance = 80;
 
-final _loop = [
-  // Top bends
-  Bend2x2(coord: const CellCoord(-1, -2), angle: pi),
-  Straight1x1(coord: const CellCoord(0, -2), angle: pi),
-  Bend2x2(coord: const CellCoord(2, -1), angle: -pi / 2),
-
-  // Right side
-  Straight1x1(coord: const CellCoord(2, 0), angle: pi / 2),
-  Straight1x1(coord: const CellCoord(2, 1), angle: pi / 2),
-
-  // Bottom bends
-  Bend2x2(coord: const CellCoord(1, 3), angle: 0),
-  Straight1x1(coord: const CellCoord(0, 3), angle: pi),
-  Bend2x2(coord: const CellCoord(-2, 2), angle: pi / 2),
-
-  // Left side
-  Straight1x1(coord: const CellCoord(-2, 0), angle: pi / 2),
-  Straight1x1(coord: const CellCoord(-2, 1), angle: pi / 2),
-];
-
-final _figureEight = [
-  // Horizontal
-  Straight1x1(coord: const CellCoord(-1, 0), angle: 0),
-  Straight1x1(coord: const CellCoord(0, 0), angle: 0),
-  Straight1x1(coord: const CellCoord(1, 0), angle: 0),
-
-  // Top right
-  Bend2x2(coord: const CellCoord(2, 0), angle: 0),
-  Bend2x2(coord: const CellCoord(3, -2), angle: -pi / 2),
-  Bend2x2(coord: const CellCoord(1, -3), angle: -pi),
-
-  // Vertical
-  Straight1x1(coord: const CellCoord(0, -1), angle: pi / 2),
-  Straight1x1(coord: const CellCoord(0, 0), angle: pi / 2),
-  Straight1x1(coord: const CellCoord(0, 1), angle: pi / 2),
-
-  // Bottom left
-  Bend2x2(coord: const CellCoord(-2, 0), angle: pi),
-  Bend2x2(coord: const CellCoord(-3, 2), angle: pi / 2),
-  Bend2x2(coord: const CellCoord(-1, 3), angle: 0),
-];
-
-final _rails = _figureEight;
+final _rails = Layouts.clover;
 
 class OnTheRails extends FlameGame<RailWorld>
     with HasKeyboardHandlerComponents {
@@ -91,7 +46,7 @@ class OnTheRails extends FlameGame<RailWorld>
         TrainCar(length: 100, riderSpacing: 50, debugLabel: "last "),
       ],
     );
-    train.rail = _rails.firstOrNull;
+    train.rail = _rails.elementAtOrNull(4);
     world.add(train);
   }
 

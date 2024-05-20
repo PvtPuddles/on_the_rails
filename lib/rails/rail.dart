@@ -1,5 +1,4 @@
-//@formatter:off
-import 'dart:math';
+// @formatter:off
 import 'dart:ui';
 
 import 'package:collection/collection.dart';
@@ -8,6 +7,7 @@ import 'package:flame/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:on_the_rails/priorities.dart';
+import 'package:on_the_rails/rails/rail_connection.dart';
 import 'package:on_the_rails/world.dart';
 
 import '../components/path_component.dart';
@@ -17,7 +17,8 @@ import 'straight.dart' as straight;
 export 'package:flutter/material.dart';
 // @formatter:on
 
-const drawCells = false;
+const drawCells = true;
+const drawDirections = true;
 const drawPaths = false;
 
 const allRails = [
@@ -27,15 +28,16 @@ const allRails = [
 
 abstract class Rail extends SpriteComponent with HasGameReference {
   Rail({
+    super.key,
     required this.name,
     required this.shape,
     required this.coord,
-    super.children,
     super.angle,
   }) : super(
           position: coord.position,
           size: sizeOf(shape),
           anchor: anchorFrom(shape),
+          priority: Priority.rail,
         ) {
     if (kDebugMode) addAll(debugComponents());
   }
@@ -96,10 +98,10 @@ abstract class Rail extends SpriteComponent with HasGameReference {
 
   /// Local-space path describing this rail
   late final Path path = buildPath();
-  late final PathMetric metric = path.computeMetrics().first;
+  late final PathMetric metric = path.computeMetrics().single;
 
   Tangent tangentForOffset(double distance) {
-    assert(distance >= 0 && distance < metric.length);
+    assert(distance >= 0 && distance <= metric.length);
     final tangent = metric.getTangentForOffset(distance)!;
 
     final origin = metric.getTangentForOffset(0)!;
@@ -122,7 +124,10 @@ abstract class Rail extends SpriteComponent with HasGameReference {
 }
 
 class RailPath extends PathComponent {
-  RailPath(super.path, {required super.position});
+  RailPath(super.path, {required super.position})
+      : super(
+          priority: Priority.rail - 1,
+        );
 
   @override
   void render(Canvas canvas) {
@@ -171,46 +176,6 @@ class RailCell extends SpriteComponent with HasGameReference {
   @override
   void render(Canvas canvas) {
     if (kDebugMode && drawCells) {
-      super.render(canvas);
-    }
-  }
-}
-
-class RailConnection extends SpriteComponent with HasGameReference {
-  RailConnection(
-    this.rail, {
-    required double angle,
-    required this.coord,
-    required this.atRailStart,
-  }) : super(
-          angle: angle % (2 * pi),
-          size: Vector2.all(cellSize),
-          anchor: Anchor.center,
-          position: rail.position + coord.position,
-        );
-
-  final Rail rail;
-
-  // Some jackass decided that rails should face upwards when rotated 0 degrees
-  // Nvm, finally fixed it
-  double get worldSpaceAngle => angle;
-
-  /// The cell the connection attaches to, relative to [rail]'s origin.
-  final CellCoord coord;
-  final bool atRailStart;
-
-  // TODO : Handle switches
-  late RailConnection? activeConnection = connections.singleOrNull;
-  Set<RailConnection> connections = {};
-
-  @override
-  void onLoad() {
-    sprite = Sprite(game.images.fromCache("rails/debug/rail_connection.png"));
-  }
-
-  @override
-  void render(Canvas canvas) {
-    if (kDebugMode && drawPaths) {
       super.render(canvas);
     }
   }
