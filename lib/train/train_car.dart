@@ -1,6 +1,9 @@
 part of 'train.dart';
 
-class TrainCar extends RectangleComponent with HasGameRef {
+class TrainCar extends RectangleComponent
+    with HasGameRef, TapCallbacks, HoverCallbacks {
+  static const defaultWidth = cellSize / 4;
+
   TrainCar({
     super.key,
     Rider? frontRider,
@@ -12,7 +15,7 @@ class TrainCar extends RectangleComponent with HasGameRef {
         _backRider = backRider ?? Rider(),
         riderSpacing = riderSpacing ?? (length * 3 / 4),
         super(priority: Priority.railCar) {
-    size = Vector2(length, cellSize / 4);
+    size = Vector2(length, defaultWidth);
     paint = Paint()..color = Colors.greenAccent;
     anchor = Anchor.center;
   }
@@ -99,5 +102,39 @@ class TrainCar extends RectangleComponent with HasGameRef {
         (other.length - other.riderSpacing) / 2 + (length - riderSpacing) / 2;
     frontRider.trail(other.backRider, distance: distance);
     _updatePosition();
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    final uAgent = UserAgent.instance;
+    final ttm = TooltipManager.instance;
+
+    if (uAgent.focus == this) {
+      if (ttm.target == this && ttm.mode == TooltipMode.persistent) {
+        ttm.showTooltip(this, mode: TooltipMode.fleeting);
+      } else {
+        ttm.showTooltip(this, mode: TooltipMode.persistent);
+      }
+      return;
+    } else {
+      ttm.target = null;
+      uAgent.focus = this;
+    }
+  }
+
+  @override
+  void onHoverEnter() {
+    final ttm = TooltipManager.instance;
+    if (ttm.mode != TooltipMode.persistent) {
+      ttm.showTooltip(this);
+    }
+  }
+
+  @override
+  void onHoverExit() {
+    final ttm = TooltipManager.instance;
+    if (ttm.mode != TooltipMode.persistent) {
+      ttm.hideTooltip(this);
+    }
   }
 }

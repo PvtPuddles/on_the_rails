@@ -1,10 +1,25 @@
 import 'package:flame/components.dart';
+import 'package:flame/extensions.dart';
 import 'package:flutter/services.dart';
 import 'package:on_the_rails/agents/agent.dart';
 import 'package:on_the_rails/train/train.dart';
 
-class UserAgent extends TrainAgent with KeyboardHandler {
-  UserAgent();
+class UserAgent extends TrainAgent
+    with KeyboardHandler, HasGameReference, Notifier {
+  UserAgent._();
+
+  static final instance = UserAgent._();
+
+  PositionComponent? _focus;
+
+  PositionComponent? get focus => _focus;
+
+  set focus(PositionComponent? value) {
+    _oldFocus = _focus;
+    _lerpStart = DateTime.now();
+    _focus = value;
+    notifyListeners();
+  }
 
   @override
   void update(double dt) {
@@ -13,7 +28,13 @@ class UserAgent extends TrainAgent with KeyboardHandler {
       final targetThrottle =
           train.throttle + (TrainAgent.throttleSpeed * _throttleDirection) * dt;
       train.throttle = targetThrottle;
+
+      if (focus != null) {
+        game.camera.viewfinder.position = _lerpPosition((c) => c.position);
+        // game.camera.viewfinder.position = focus!.position;
+      }
     }
+
     super.update(dt);
   }
 
@@ -75,5 +96,31 @@ class UserAgent extends TrainAgent with KeyboardHandler {
     }
 
     return false;
+  }
+
+  PositionComponent? _oldFocus;
+  DateTime? _lerpStart;
+  static const Duration _lerpDuration = Duration(milliseconds: 250);
+
+  /// Lerps between the *current* [_oldFocus]'s position and the *current*
+  /// [focus]'s position.
+  Vector2 _lerpPosition(Vector2 Function(PositionComponent) positionOf) {
+    if (focus == null) return Vector2.zero();
+    final targetPos = positionOf(focus!);
+    if (_lerpStart == null) return targetPos;
+    final t = DateTime.now().difference(_lerpStart!).inMilliseconds /
+        _lerpDuration.inMilliseconds;
+    if (t >= 1) return targetPos;
+
+    if (_oldFocus == null) return targetPos;
+    final oldPos = positionOf(_oldFocus!);
+    if (t <= 0) return oldPos;
+
+    return Offset.lerp(
+      oldPos.toOffset(),
+      targetPos.toOffset(),
+      t,
+    )!
+        .toVector2();
   }
 }

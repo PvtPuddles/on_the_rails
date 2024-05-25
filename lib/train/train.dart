@@ -3,10 +3,13 @@ import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:on_the_rails/agents/agent.dart';
+import 'package:on_the_rails/agents/user_agent.dart';
 import 'package:on_the_rails/priorities.dart';
 import 'package:on_the_rails/rails/rail.dart';
+import 'package:on_the_rails/widgets/menus/tooltip_menu.dart';
 import 'package:on_the_rails/world.dart';
 
 part 'rider.dart';
