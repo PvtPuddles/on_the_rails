@@ -1,41 +1,21 @@
 import 'package:flame/components.dart';
-import 'package:flutter/foundation.dart';
 import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/rails/rail_connection.dart';
 
 const double cellSize = 128;
 
 class RailWorld extends World {
   RailWorld();
 
-  Map<CellCoord, List<Rail>> rails = {};
+  /// A container holding all the the rails in the game.
+  final railMap = RailMap();
 
-  Map<CellCoord, List<RailConnection>> connections = {};
+  @override
+  Future<void> onLoad() async {
+    await add(railMap);
+  }
 
   void addRail(Rail rail) {
-    // Add debug cells to world
-    if (kDebugMode) {
-      for (final cell in rail.shape) {
-        bool isRailOrigin = cell.x == 0 && cell.y == 0;
-        cell.rotate(rail.angle);
-        cell.multiply(Vector2.all(cellSize));
-        cell.add(rail.position);
-        if (isRailOrigin) {
-          add(RailCell.origin(position: cell, angle: rail.angle));
-        } else {
-          add(RailCell(position: cell));
-        }
-      }
-    }
-
-    // Add rail itself
-    rails.register(rail.coord, rail);
-    add(rail);
-
-    connections.addConnection(rail.startingConnection);
-    add(rail.startingConnection);
-    connections.addConnection(rail.endingConnection);
-    add(rail.endingConnection);
+    railMap.addRail(rail);
   }
 }
 

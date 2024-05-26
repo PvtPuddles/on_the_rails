@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
+import 'package:flame/sprite.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:on_the_rails/priorities.dart';
@@ -52,9 +53,50 @@ abstract class Rail extends SpriteComponent with HasGameReference {
   RailConnection get startingConnection;
   RailConnection get endingConnection;
 
+  RailMap get _map => (game.world as RailWorld).railMap;
+
+  late final SpriteComponent _ties;
+  late final SpriteComponent _sleeper;
+
   @override
   void onLoad() {
-    sprite = Sprite(game.images.fromCache("rails/$name.png"));
+    const double tileWidth = 32;
+    const multiplier = tileWidth / cellSize;
+    final bounds = size * multiplier;
+    final sheet = SpriteSheet(
+      image: game.images.fromCache("rails/$name.png"),
+      srcSize: bounds,
+      spacing: 1,
+    );
+
+    sprite = sheet.getSpriteById(0);
+    final ties = sheet.getSpriteById(1);
+    final sleeper = sheet.getSpriteById(2);
+    final components = ([
+      ties,
+      sleeper,
+    ].map((e) => SpriteComponent(
+          sprite: e,
+          size: size,
+          anchor: anchor,
+          position: position,
+          angle: angle,
+        ))).toList();
+
+    _ties = components[0];
+    _sleeper = components[1];
+  }
+
+  @override
+  void onMount() {
+    _map.mount(this);
+    super.onMount();
+  }
+
+  @override
+  void onRemove() {
+    _map.mount(this);
+    super.onRemove();
   }
 
   static Anchor anchorFrom(List<Vector2> shape) {
@@ -178,5 +220,58 @@ class RailCell extends SpriteComponent with HasGameReference {
     if (kDebugMode && drawCells) {
       super.render(canvas);
     }
+  }
+}
+
+class RailMap extends Component {
+  RailMap();
+
+  final _railLayer = Component(priority: Priority.rail);
+  final _tieLayer = Component(priority: Priority.ties);
+  final _sleeperLayer = Component(priority: Priority.sleeper);
+
+  @override
+  Future<void> onLoad() async {
+    await addAll([_railLayer, _tieLayer, _sleeperLayer]);
+  }
+
+  Map<CellCoord, List<Rail>> rails = {};
+
+  Map<CellCoord, List<RailConnection>> connections = {};
+
+  Future<void> addRail(Rail rail) async {
+    // Add debug cells to world
+    if (kDebugMode) {
+      for (final cell in rail.shape) {
+        bool isRailOrigin = cell.x == 0 && cell.y == 0;
+        cell.rotate(rail.angle);
+        cell.multiply(Vector2.all(cellSize));
+        cell.add(rail.position);
+        if (isRailOrigin) {
+          add(RailCell.origin(position: cell, angle: rail.angle));
+        } else {
+          add(RailCell(position: cell));
+        }
+      }
+    }
+
+    // Add rail itself
+    rails.register(rail.coord, rail);
+    connections.addConnection(rail.startingConnection);
+    connections.addConnection(rail.endingConnection);
+
+    await _railLayer.add(rail);
+    _railLayer.add(rail.startingConnection);
+    _railLayer.add(rail.endingConnection);
+  }
+
+  Future<void> mount(Rail rail) async {
+    await _tieLayer.add(rail._ties);
+    await _sleeperLayer.add(rail._sleeper);
+  }
+
+  void dismount(Rail rail) {
+    _tieLayer.remove(rail._ties);
+    _sleeperLayer.remove(rail._sleeper);
   }
 }
