@@ -6,32 +6,55 @@ class TrainCar extends RectangleComponent
 
   TrainCar({
     super.key,
+    this.name,
     Rider? frontRider,
     Rider? backRider,
-    required this.length,
+    required double length,
+    double width = gauge,
     this.debugLabel,
     double? riderSpacing,
+    this.maxSpeed = 30,
+    this.weight = 22,
   })  : frontRider = frontRider ?? Rider(),
         _backRider = backRider ?? Rider(),
-        riderSpacing = riderSpacing ?? (length * 3 / 4),
+        riderSpacing = riderSpacing ?? max((length - 40) * 3 / 4, 30),
         super(priority: Priority.railCar) {
-    size = Vector2(length, defaultWidth);
+    size = Vector2(length, width);
     paint = Paint()..color = Colors.greenAccent;
     anchor = Anchor.center;
   }
 
   TrainCar.single({
+    super.key,
+    this.name,
     Rider? frontRider,
-    required this.length,
+    required double length,
+    double width = gauge,
     this.debugLabel,
+    this.maxSpeed = 30,
+    this.weight = 22,
   })  : frontRider = frontRider ?? Rider(),
         _backRider = null,
         riderSpacing = 0,
         super(priority: Priority.railCar) {
-    size = Vector2(length, cellSize / 4);
+    size = Vector2(length, width);
     paint = Paint()..color = Colors.greenAccent;
     anchor = Anchor.center;
   }
+
+  @override
+  final String? name;
+
+  final double maxSpeed;
+
+  /// Train car weight, in tons.
+  final double weight;
+
+  double get length => size.x;
+  double get carWidth => size.y;
+
+  /// The number of units separating the front and back riders.
+  double riderSpacing;
 
   String? debugLabel;
 
@@ -59,9 +82,6 @@ class TrainCar extends RectangleComponent
   final Rider? _backRider;
 
   Rider get backRider => _backRider ?? frontRider;
-
-  double length;
-  double riderSpacing;
 
   void _updatePosition() {
     _backRider?.trail(frontRider, distance: riderSpacing);

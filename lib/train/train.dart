@@ -10,8 +10,10 @@ import 'package:on_the_rails/agents/user_agent.dart';
 import 'package:on_the_rails/priorities.dart';
 import 'package:on_the_rails/rails/rail.dart';
 import 'package:on_the_rails/widgets/menus/tooltip_menu.dart';
+import 'package:on_the_rails/widgets/train/train_car_tooltip.dart';
 import 'package:on_the_rails/world.dart';
 
+part 'engine.dart';
 part 'rider.dart';
 part 'train_car.dart';
 
@@ -34,10 +36,23 @@ class Train extends Component with HasGameRef, KeyboardHandler {
 
   List<TrainCar> cars;
 
-  final double acceleration = 1;
-  late final double brakingSpeed = 3 * acceleration;
+  double get maxSpeed => cars.map((e) => e.maxSpeed).min;
 
-  final double maxSpeed = 30;
+  /// Total train weight, in tons.
+  double get weight => cars.map((e) => e.weight).sum;
+
+  double get power {
+    final engines = cars.whereType<Engine>();
+    if (engines.isEmpty) return 0;
+    return engines.map((e) => e.power).sum;
+  }
+
+  double get brakingForce {
+    final engines = cars.whereType<Engine>();
+    if (engines.isEmpty) return 0;
+    return engines.map((e) => e.brakingForce).sum;
+  }
+
   late final double maxReverseSpeed = .5 * maxSpeed;
   double speed = 0;
 
@@ -83,10 +98,10 @@ class Train extends Component with HasGameRef, KeyboardHandler {
 
     final oldSpeed = speed;
     if (targetSpeed > speed) {
-      speed += min(acceleration * dt, targetSpeed - speed);
+      speed += min((power / (weight / 10)) * dt, targetSpeed - speed);
       if (oldSpeed == 0 && speed != 0) _onStart();
     } else if (targetSpeed < speed) {
-      speed -= min(brakingSpeed * dt, speed - targetSpeed);
+      speed -= min((brakingForce / (weight / 10)) * dt, speed - targetSpeed);
       if (oldSpeed != 0 && speed == 0) _onStop();
     }
 

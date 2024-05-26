@@ -42,9 +42,8 @@ class OnTheRails extends FlameGame<RailWorld>
     final train = Train(
       agent: uAgent,
       cars: [
-        TrainCar(length: 100, riderSpacing: 50, debugLabel: "first"),
-        TrainCar.single(length: 50, debugLabel: "mid  "),
-        TrainCar(length: 100, riderSpacing: 50, debugLabel: "last "),
+        buildJupiter(),
+        TrainCar(length: 70, name: "Fuel Car", weight: 10),
       ],
     );
     uAgent.focus = train.cars.first;

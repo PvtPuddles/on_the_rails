@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/services.dart';
 import 'package:on_the_rails/agents/agent.dart';
+import 'package:on_the_rails/rails/rail.dart';
 import 'package:on_the_rails/train/train.dart';
 
 class UserAgent extends TrainAgent
@@ -69,7 +70,11 @@ class UserAgent extends TrainAgent
 
         /// Other Stuff
         case LogicalKeyboardKey.space:
-          train.append(TrainCar(length: 100, riderSpacing: 50));
+          train.append(TrainCar(
+            name: "Boxcar",
+            length: 140,
+            width: gauge + 4,
+          ));
         case LogicalKeyboardKey.delete || LogicalKeyboardKey.backspace:
           final removed = train.cars.removeLast();
           game.world.remove(removed);
