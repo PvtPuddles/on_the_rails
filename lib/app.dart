@@ -7,7 +7,7 @@ import 'package:on_the_rails/agents/user_agent.dart';
 import 'package:on_the_rails/rails/layouts.dart';
 import 'package:on_the_rails/rails/rail.dart';
 import 'package:on_the_rails/train/train.dart';
-import 'package:on_the_rails/widgets/menus/tooltip_menu.dart';
+import 'package:on_the_rails/ui/widgets/menus/tooltip_menu.dart';
 import 'package:on_the_rails/world.dart';
 // @formatter:on
 
@@ -16,7 +16,7 @@ const trailingDistance = 80;
 final _rails = Layouts.cloverPlus;
 
 class OnTheRails extends FlameGame<RailWorld>
-    with HasKeyboardHandlerComponents, SecondaryTapDetector {
+    with HasKeyboardHandlerComponents, TapDetector {
   OnTheRails({super.camera}) : super(world: RailWorld());
 
   @override
@@ -42,8 +42,7 @@ class OnTheRails extends FlameGame<RailWorld>
     final train = Train(
       agent: uAgent,
       cars: [
-        buildJupiter(),
-        TrainCar(length: 70, name: "Fuel Car", weight: 10),
+        ...buildJupiter(),
       ],
     );
     uAgent.focus = train.cars.first;

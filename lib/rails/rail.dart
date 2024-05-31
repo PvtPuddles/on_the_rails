@@ -27,6 +27,8 @@ const allRails = [
   ...straight.rails,
 ];
 
+const gauge = cellSize / 4;
+
 abstract class Rail extends SpriteComponent with HasGameReference {
   Rail({
     super.key,
@@ -34,6 +36,7 @@ abstract class Rail extends SpriteComponent with HasGameReference {
     required this.shape,
     required this.coord,
     super.angle,
+    super.nativeAngle,
   }) : super(
           position: coord.position,
           size: sizeOf(shape),

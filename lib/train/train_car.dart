@@ -1,42 +1,42 @@
 part of 'train.dart';
 
 class TrainCar extends RectangleComponent
-    with HasGameRef, TapCallbacks, HoverCallbacks {
-  static const defaultWidth = cellSize / 4;
-
+    with HasGameRef, TapCallbacks, HoverCallbacks, TrainCarTooltip {
   TrainCar({
     super.key,
     this.name,
-    Rider? frontRider,
-    Rider? backRider,
     required double length,
     double width = gauge,
     this.debugLabel,
     double? riderSpacing,
     this.maxSpeed = 30,
     this.weight = 22,
-  })  : frontRider = frontRider ?? Rider(),
-        _backRider = backRider ?? Rider(),
-        riderSpacing = riderSpacing ?? max((length - 40) * 3 / 4, 30),
-        super(priority: Priority.railCar) {
-    size = Vector2(length, width);
-    paint = Paint()..color = Colors.greenAccent;
-    anchor = Anchor.center;
+    this.inventory,
+  })  : riderSpacing = riderSpacing ?? max((length - 40) * 3 / 4, 30),
+        super(
+          priority: Priority.railCar,
+          size: Vector2(length, width),
+          position: Vector2.zero(),
+          paint: Paint()..color = Colors.greenAccent,
+          anchor: Anchor.center,
+        ) {
+    frontRider = Rider(car: this);
+    _backRider = Rider(car: this);
   }
 
   TrainCar.single({
     super.key,
     this.name,
-    Rider? frontRider,
     required double length,
     double width = gauge,
     this.debugLabel,
     this.maxSpeed = 30,
     this.weight = 22,
-  })  : frontRider = frontRider ?? Rider(),
-        _backRider = null,
+    this.inventory,
+  })  : _backRider = null,
         riderSpacing = 0,
         super(priority: Priority.railCar) {
+    frontRider = Rider(car: this);
     size = Vector2(length, width);
     paint = Paint()..color = Colors.greenAccent;
     anchor = Anchor.center;
@@ -58,6 +58,31 @@ class TrainCar extends RectangleComponent
 
   String? debugLabel;
 
+  Train? train;
+
+  bool get isDriver {
+    if (train == null) return true;
+    switch (train!.transmission) {
+      case >= 0:
+        return train!.cars.first == this;
+      default:
+        return train!.cars.last == this;
+    }
+  }
+
+  bool get isCaboose {
+    if (train == null) return true;
+    switch (train!.transmission) {
+      case >= 0:
+        return train!.cars.last == this;
+      default:
+        return train!.cars.first == this;
+    }
+  }
+
+  @override
+  final Inventory? inventory;
+
   @override
   void onMount() {
     frontRider.position.addListener(_updatePosition);
@@ -78,8 +103,8 @@ class TrainCar extends RectangleComponent
     super.onRemove();
   }
 
-  final Rider frontRider;
-  final Rider? _backRider;
+  late final Rider frontRider;
+  late final Rider? _backRider;
 
   Rider get backRider => _backRider ?? frontRider;
 
@@ -96,24 +121,10 @@ class TrainCar extends RectangleComponent
     }
   }
 
-  double speed = 0;
-
-  @override
-  void update(double dt) {
-    if (speed != 0) {
-      frontRider.moveForward(speed * dt * 10);
-    }
-
-    super.update(dt);
-  }
-
   set rail(Rail? value) {
     frontRider.rail = value;
     frontRider._distance = 0;
     _updatePosition();
-    if (value == null) {
-      speed = 0;
-    }
   }
 
   void trail(TrainCar other, {required double distance}) {
@@ -156,5 +167,17 @@ class TrainCar extends RectangleComponent
     if (ttm.mode != TooltipMode.persistent) {
       ttm.hideTooltip(this);
     }
+  }
+
+  @override
+  String toString() {
+    final designator = train == null
+        ? ""
+        : isDriver
+            ? "👑"
+            : isCaboose
+                ? "💨"
+                : "🔗";
+    return "$designator${name ?? debugLabel}";
   }
 }

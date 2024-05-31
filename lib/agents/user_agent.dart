@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/services.dart';
 import 'package:on_the_rails/agents/agent.dart';
+import 'package:on_the_rails/items/inventory.dart';
 import 'package:on_the_rails/rails/rail.dart';
 import 'package:on_the_rails/train/train.dart';
 
@@ -32,7 +33,6 @@ class UserAgent extends TrainAgent
 
       if (focus != null) {
         game.camera.viewfinder.position = _lerpPosition((c) => c.position);
-        // game.camera.viewfinder.position = focus!.position;
       }
     }
 
@@ -74,6 +74,7 @@ class UserAgent extends TrainAgent
             name: "Boxcar",
             length: 140,
             width: gauge + 4,
+            inventory: Inventory(width: 4, height: 5),
           ));
         case LogicalKeyboardKey.delete || LogicalKeyboardKey.backspace:
           final removed = train.cars.removeLast();

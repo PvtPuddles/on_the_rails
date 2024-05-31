@@ -7,10 +7,14 @@ import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:on_the_rails/agents/agent.dart';
 import 'package:on_the_rails/agents/user_agent.dart';
+import 'package:on_the_rails/app.dart';
+import 'package:on_the_rails/items/inventory.dart';
+import 'package:on_the_rails/items/item.dart';
 import 'package:on_the_rails/priorities.dart';
 import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/widgets/menus/tooltip_menu.dart';
-import 'package:on_the_rails/widgets/train/train_car_tooltip.dart';
+import 'package:on_the_rails/rails/rail_connection.dart';
+import 'package:on_the_rails/ui/widgets/inventory.dart';
+import 'package:on_the_rails/ui/widgets/train/train_car_tooltip.dart';
 import 'package:on_the_rails/world.dart';
 
 part 'engine.dart';
@@ -29,6 +33,9 @@ class Train extends Component with HasGameRef, KeyboardHandler {
       if (agent!.activeTrain != this) {
         agent?.activeTrain = this;
       }
+    }
+    for (final car in cars) {
+      car.train = this;
     }
   }
 
@@ -56,7 +63,10 @@ class Train extends Component with HasGameRef, KeyboardHandler {
   late final double maxReverseSpeed = .5 * maxSpeed;
   double speed = 0;
 
-  Rider get driver => speed >= 0 ? cars.first.frontRider : cars.last.backRider;
+  Rider get driver =>
+      transmission.sign >= 0 ? cars.first.frontRider : cars.last.backRider;
+  Rider get tail =>
+      transmission.sign >= 0 ? cars.last.backRider : cars.first.frontRider;
 
   set rail(Rail? value) {
     for (final car in cars) {
@@ -84,6 +94,7 @@ class Train extends Component with HasGameRef, KeyboardHandler {
   }
 
   void append(TrainCar car) {
+    car.train = this;
     if (!car.isMounted) {
       game.world.add(car);
     }
@@ -128,7 +139,15 @@ class Train extends Component with HasGameRef, KeyboardHandler {
     oldDriver.steering = null;
   }
 
-  int transmission = 1;
+  int _transmission = 1;
+
+  int get transmission => _transmission;
+
+  set transmission(int value) {
+    if (value.sign == _transmission.sign) return;
+    driver.steering = null;
+    _transmission = value;
+  }
 
   double _throttle = 0;
 
@@ -143,8 +162,32 @@ class Train extends Component with HasGameRef, KeyboardHandler {
 
   /// Sets the steering direction of the driving rider.
   set steering(int? value) {
-    driver.steering = value;
+    if (value == null || value == 0) {
+      driver.steering = value;
+    } else {
+      driver.steering = value * transmission.sign;
+    }
   }
 
-  int? get steering => driver.steering;
+  int? get steering {
+    final value = driver.steering;
+    if (value == null || value == 0) {
+      return value;
+    } else {
+      return value * transmission.sign;
+    }
+  }
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    return cars.any((car) => car.containsPoint(car.parentToLocal(point)));
+  }
+
+  /// Test whether the `point` (given in global coordinates) lies within this
+  /// component. The top and the left borders of the component are inclusive,
+  /// while the bottom and the right borders are exclusive.
+  @override
+  bool containsPoint(Vector2 point) {
+    return cars.any((car) => car.containsPoint(point));
+  }
 }

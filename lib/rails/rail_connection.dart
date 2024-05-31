@@ -54,9 +54,17 @@ class RailConnection extends SpriteComponent with HasGameReference {
   final CellCoord coord;
   final bool atRailStart;
 
-  // TODO : Lock switches so that they cannot be triggered while a train is
-  //  traversing them
-  late RailConnection? activeConnection = connections.firstOrNull;
+  late RailConnection? _activeConnection = connections.firstOrNull;
+
+  RailConnection? get activeConnection => _activeConnection;
+
+  set activeConnection(RailConnection? value) {
+    _activeConnection = value;
+    for (final connection in connections) {
+      connection._activeConnection = this;
+    }
+  }
+
   List<RailConnection> connections = [];
 
   void addConnection(RailConnection other) {
@@ -89,7 +97,25 @@ class RailConnection extends SpriteComponent with HasGameReference {
     }
   }
 
+  bool _locked = false;
+
+  bool get locked => _locked || connections.any((c) => c._locked);
+
+  set locked(bool value) {
+    _locked = value;
+    for (final connection in connections) {
+      connection._locked = value;
+      // Set locked recursively one time, so that forcing a switch will cause
+      // neighbors to update
+      for (final other in connection.connections) {
+        other._locked = value;
+      }
+    }
+  }
+
   void setActive(int steering) {
+    if (locked) throw StateError("Cannot modified a locked switch");
+
     final straight = connections.firstWhereOrNull(
       (c) =>
           c._railDirection == (angle - pi) % (2 * pi) ||
@@ -118,6 +144,8 @@ class RailConnection extends SpriteComponent with HasGameReference {
   @override
   void render(Canvas canvas) {
     if (kDebugMode && drawPaths) {
+      paint = Paint();
+      if (locked) paint.color = Colors.red.withOpacity(.1);
       super.render(canvas);
     }
   }
