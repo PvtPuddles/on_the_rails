@@ -30,6 +30,9 @@ enum ItemModifier {
   /// Food-safe containers may not carry anything that is not a food.
   food,
 
+  /// Items that can be put in a firebox to power a steam boiler.
+  fireboxFuel,
+
   /// Items that cannot be stored in the open air.
   moistureSensitive,
 
@@ -45,13 +48,13 @@ class Item {
     required this.name,
     required this.itemType,
     this.modifiers = const [],
-    this.shape = const [CellCoord.zero],
+    this.shape = CellShape.unit,
   });
 
   final String name;
   final ItemType itemType;
   final List<ItemModifier> modifiers;
-  final List<CellCoord> shape;
+  final CellShape shape;
 
   @override
   String toString() {

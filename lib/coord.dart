@@ -1,6 +1,6 @@
-import 'dart:ui';
-
-import 'package:flame/game.dart';
+import 'package:collection/collection.dart';
+import 'package:flame/components.dart';
+import 'package:flame/extensions.dart';
 import 'package:flutter/foundation.dart';
 
 @immutable
@@ -32,6 +32,55 @@ class CellCoord {
   @override
   String toString() {
     return "($x, $y)";
+  }
+}
+
+class CellShape {
+  const CellShape(this.cells);
+
+  static const unit = CellShape([CellCoord.zero]);
+
+  final List<CellCoord> cells;
+
+  (CellCoord, CellCoord) get bounds {
+    final minX = cells.map((e) => e.x).min;
+    final maxX = cells.map((e) => e.x).max;
+    final minY = cells.map((e) => e.y).min;
+    final maxY = cells.map((e) => e.y).max;
+    return (CellCoord(minX, minY), CellCoord(maxX, maxY));
+  }
+
+  Vector2 get size {
+    final (min, max) = bounds;
+    return Vector2((max.x - min.x) + 1, (max.y - min.y) + 1);
+  }
+
+  Vector2 get center {
+    return Vector2(size.x / 2, size.y / 2);
+  }
+
+  Anchor get anchor {
+    assert(cells.any((cell) => cell.x == 0 && cell.y == 0));
+    final (min, max) = bounds;
+    // Relative position of x=0 from bounds.start
+    final xValue = -min.x;
+    final domain = (max.x - min.x) + 1;
+    // Relative position of y=0 from bounds.start
+    final yValue = -min.y;
+    final range = (max.y - min.y) + 1;
+
+    final x = xValue / domain;
+    final y = yValue / range; // Center
+
+    final anchorPos = Vector2(x + .5 / domain, y + .5 / range);
+    return Anchor(anchorPos.x, anchorPos.y);
+  }
+
+  Vector2 get origin {
+    final size = this.size;
+    final x = anchor.x * size.x;
+    final y = anchor.y * size.y;
+    return Vector2(x, y);
   }
 }
 

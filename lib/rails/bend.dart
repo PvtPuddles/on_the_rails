@@ -19,10 +19,10 @@ class Bend2x2 extends Rail {
         ),
         super(
           name: rails[0],
-          shape: [
-            Vector2(0, 0),
-            Vector2(1, -1),
-          ],
+          shape: const CellShape([
+            CellCoord(0, 0),
+            CellCoord(1, -1),
+          ]),
         );
 
   static const imageSize = 32;

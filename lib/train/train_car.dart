@@ -80,8 +80,10 @@ class TrainCar extends RectangleComponent
     }
   }
 
-  @override
   final Inventory? inventory;
+
+  @override
+  late final Iterable<Inventory>? inventories = [inventory].whereNotNull();
 
   @override
   void onMount() {
@@ -123,7 +125,11 @@ class TrainCar extends RectangleComponent
 
   set rail(Rail? value) {
     frontRider.rail = value;
-    frontRider._distance = 0;
+    if (value != null) {
+      frontRider._distance = value.metric.length - 1;
+    } else {
+      frontRider._distance = 0;
+    }
     _updatePosition();
   }
 

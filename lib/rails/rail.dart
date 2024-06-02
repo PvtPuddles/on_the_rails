@@ -1,7 +1,6 @@
 // @formatter:off
 import 'dart:ui';
 
-import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/sprite.dart';
@@ -40,7 +39,7 @@ abstract class Rail extends SpriteComponent with HasGameReference {
   }) : super(
           position: coord.position,
           size: sizeOf(shape),
-          anchor: anchorFrom(shape),
+          anchor: shape.anchor,
           priority: Priority.rail,
         ) {
     if (kDebugMode) addAll(debugComponents());
@@ -51,7 +50,7 @@ abstract class Rail extends SpriteComponent with HasGameReference {
   final CellCoord coord;
 
   /// The cells that this rail covers, relative to the anchor cell (0, 0)
-  final List<Vector2> shape;
+  final CellShape shape;
 
   RailConnection get startingConnection;
   RailConnection get endingConnection;
@@ -102,40 +101,23 @@ abstract class Rail extends SpriteComponent with HasGameReference {
     super.onRemove();
   }
 
-  static Anchor anchorFrom(List<Vector2> shape) {
-    final bounds = Rail.boundsOf(shape);
-    // Relative position of x=0 from bounds.start
-    final xValue = -bounds.$1.x + 1;
-    final domain = (-bounds.$1.x) + bounds.$1.y + 1;
-    // Relative position of y=0 from bounds.start
-    final yValue = -bounds.$2.x + 1;
-    final range = (-bounds.$2.x) + bounds.$2.y + 1;
-
-    final x = (xValue - .5) / domain;
-    final y = (yValue - .5) / range; // Center
-
-    final anchorPos = Vector2(x, y);
-    return Anchor(anchorPos.x, anchorPos.y);
+  @visibleForTesting
+  static (CellCoord, CellCoord) boundsOf(CellShape shape) {
+    assert(shape.cells.any((cell) => cell.x == 0 && cell.y == 0));
+    final bounds = shape.bounds;
+    assert(bounds.$1.x <= 0 && bounds.$2.x >= 0);
+    assert(bounds.$1.y <= 0 && bounds.$2.y >= 0);
+    return bounds;
   }
 
   @visibleForTesting
-  static (Vector2, Vector2) boundsOf(List<Vector2> shape) {
-    assert(shape.any((cell) => cell.x == 0 && cell.y == 0));
-    final minX = shape.map((e) => e.x).min;
-    final maxX = shape.map((e) => e.x).max;
-    final minY = shape.map((e) => e.y).min;
-    final maxY = shape.map((e) => e.y).max;
-    assert(minX <= 0 && maxX >= 0);
-    assert(minY <= 0 && maxY >= 0);
-    return (Vector2(minX, maxX), Vector2(minY, maxY));
-  }
-
-  @visibleForTesting
-  static Vector2 sizeOf(List<Vector2> shape) {
-    final bounds = Rail.boundsOf(shape);
+  static Vector2 sizeOf(CellShape shape) {
+    final bounds = boundsOf(shape);
+    final min = bounds.$1;
+    final max = bounds.$2;
     final size = Vector2(
-      (bounds.$1.y - bounds.$1.x) + 1,
-      (bounds.$2.y - bounds.$2.x) + 1,
+      (max.x - min.x) + 1,
+      (max.y - min.y) + 1,
     );
     size.multiply(Vector2.all(cellSize));
     return size;
@@ -245,15 +227,16 @@ class RailMap extends Component {
   Future<void> addRail(Rail rail) async {
     // Add debug cells to world
     if (kDebugMode) {
-      for (final cell in rail.shape) {
+      for (final cell in rail.shape.cells) {
         bool isRailOrigin = cell.x == 0 && cell.y == 0;
-        cell.rotate(rail.angle);
-        cell.multiply(Vector2.all(cellSize));
-        cell.add(rail.position);
+        final v2 = cell.toVector();
+        v2.rotate(rail.angle);
+        v2.multiply(Vector2.all(cellSize));
+        v2.add(rail.position);
         if (isRailOrigin) {
-          add(RailCell.origin(position: cell, angle: rail.angle));
+          add(RailCell.origin(position: v2, angle: rail.angle));
         } else {
-          add(RailCell(position: cell));
+          add(RailCell(position: v2));
         }
       }
     }

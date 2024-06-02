@@ -7,13 +7,11 @@ import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:on_the_rails/agents/agent.dart';
 import 'package:on_the_rails/agents/user_agent.dart';
-import 'package:on_the_rails/app.dart';
 import 'package:on_the_rails/items/inventory.dart';
 import 'package:on_the_rails/items/item.dart';
 import 'package:on_the_rails/priorities.dart';
 import 'package:on_the_rails/rails/rail.dart';
 import 'package:on_the_rails/rails/rail_connection.dart';
-import 'package:on_the_rails/ui/widgets/inventory.dart';
 import 'package:on_the_rails/ui/widgets/train/train_car_tooltip.dart';
 import 'package:on_the_rails/world.dart';
 

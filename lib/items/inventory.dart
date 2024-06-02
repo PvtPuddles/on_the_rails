@@ -1,32 +1,54 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:on_the_rails/coord.dart';
 import 'package:on_the_rails/items/item.dart';
 
 class Inventory extends ChangeNotifier {
   Inventory({
+    this.name,
     required this.width,
     required this.height,
+    this.whitelist = const [],
+    this.blacklist = const [],
   }) : _data = List.filled(width * height, null);
+
+  final String? name;
 
   final int width;
   final int height;
 
-  final List<Item?> _data;
+  final List<ItemModifier> whitelist;
+  final List<ItemModifier> blacklist;
+
+  final List<ItemRef?> _data;
+
+  Iterable<ItemRef> get items => _data.toSet().whereNotNull();
 
   int get cellCount => width * height;
 
-  Item? at(CellCoord coord) {
+  Item? operator [](CellCoord coord) {
+    assert(_contains(coord));
+    return _data[_indexOf(coord)]?.item;
+  }
+
+  ItemRef? refAt(CellCoord coord) {
     assert(_contains(coord));
     return _data[_indexOf(coord)];
   }
 
   Item? atIndex(int index) {
-    return _data[index];
+    return _data[index]?.item;
   }
 
-  bool contains(Item item) => _data.contains(item);
+  bool contains(Item item) => _data.any((ref) => ref?.item == item);
 
   bool canAdd(Item item, [CellCoord? origin]) {
+    bool isWhitelisted = whitelist.isEmpty ||
+        whitelist.any((modifier) => item.modifiers.contains(modifier));
+    bool isBlacklisted =
+        blacklist.any((modifier) => item.modifiers.contains(modifier));
+    if (isBlacklisted || !isWhitelisted) return false;
+
     if (origin == null) {
       for (int i = 0; i < cellCount; i++) {
         if (_data[i] != null) continue;
@@ -35,10 +57,7 @@ class Inventory extends ChangeNotifier {
       }
       return false;
     } else {
-      // Turns out, moving items is a perfectly valid action...
-      // if (_data.any((i) => item == i)) return false;
-
-      for (final cell in item.shape) {
+      for (final cell in item.shape.cells) {
         final coord = cell + origin;
 
         if (!_contains(coord)) return false;
@@ -52,7 +71,7 @@ class Inventory extends ChangeNotifier {
   void insert(Item item, [CellCoord? origin]) {
     for (int i = 0; i < cellCount; i++) {
       final occupant = _data[i];
-      if (occupant == item) {
+      if (occupant?.item == item) {
         throw ArgumentError.value(
           item,
           "item",
@@ -77,7 +96,7 @@ class Inventory extends ChangeNotifier {
     }
     origin!;
     // Assert item can be added
-    for (final cell in item.shape) {
+    for (final cell in item.shape.cells) {
       final coord = cell + origin;
       if (!_contains(coord)) {
         throw RangeError(
@@ -96,15 +115,15 @@ class Inventory extends ChangeNotifier {
     }
 
     // Add a reference to the item to each cell
-    for (final cell in item.shape) {
+    for (final cell in item.shape.cells) {
       final coord = cell + origin;
-      _data[_indexOf(coord)] = item;
+      _data[_indexOf(coord)] = ItemRef(this, item, origin: origin);
     }
     notifyListeners();
   }
 
   void remove(Item item) {
-    final cells = _data.indexed.where((cell) => cell.$2 == item);
+    final cells = _data.indexed.where((cell) => cell.$2?.item == item);
 
     // Remove the reference to the item in each cell
     for (final (index, _) in cells) {
@@ -133,16 +152,42 @@ class Inventory extends ChangeNotifier {
   }
 }
 
+class ItemRef {
+  ItemRef(
+    this.inventory,
+    this.item, {
+    required this.origin,
+  });
+
+  Item item;
+
+  /// The position of [item]'s origin in [inventory].
+  CellCoord origin;
+
+  Inventory inventory;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ItemRef) return false;
+    return item == other.item;
+  }
+
+  @override
+  int get hashCode => item.hashCode;
+}
+
 class FuelTank extends Inventory {
   FuelTank({
+    super.name = "Fuel Tank",
     required super.width,
     required super.height,
   });
 
   @override
-  Fuel? at(CellCoord coord) {
+  Fuel? operator [](CellCoord coord) {
     assert(_contains(coord));
-    return _data[_indexOf(coord)] as Fuel?;
+    return _data[_indexOf(coord)]?.item as Fuel?;
   }
 
   @override

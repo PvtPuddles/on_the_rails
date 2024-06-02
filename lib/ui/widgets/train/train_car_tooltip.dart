@@ -9,7 +9,7 @@ export 'package:on_the_rails/ui/widgets/menus/tooltip_menu.dart';
 abstract mixin class TrainCarTooltip implements HasTooltip {
   String? get name;
 
-  Inventory? get inventory;
+  Iterable<Inventory>? get inventories;
 
   FlameGame get game;
 
@@ -17,8 +17,7 @@ abstract mixin class TrainCarTooltip implements HasTooltip {
   Widget buildTooltip(BuildContext context, TooltipMode mode) {
     final content =
         mode == TooltipMode.persistent ? buildContent(context) : null;
-    final inventory =
-        mode == TooltipMode.persistent ? buildInventory(context) : null;
+
     return SingleChildScrollView(
       // Prevents jittering while in motion
       physics: const ClampingScrollPhysics(),
@@ -31,11 +30,12 @@ abstract mixin class TrainCarTooltip implements HasTooltip {
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: content,
             ),
-          if (inventory != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: inventory,
-            ),
+          if (mode == TooltipMode.persistent && inventories != null)
+            for (final inventory in inventories!)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: buildInventory(context, inventory),
+              ),
         ],
       ),
     );
@@ -52,12 +52,17 @@ abstract mixin class TrainCarTooltip implements HasTooltip {
     return null;
   }
 
-  Widget? buildInventory(BuildContext context) {
+  Widget? buildInventory(BuildContext context, Inventory? inventory) {
     if (inventory == null) return null;
-
-    return InventoryWidget(
-      inventory!,
-      game: game,
+    return Column(
+      children: [
+        if (inventory.name?.isNotEmpty ?? false)
+          Text(inventory.name!, style: Theme.of(context).textTheme.titleSmall),
+        InventoryWidget(
+          inventory,
+          game: game,
+        ),
+      ],
     );
   }
 }

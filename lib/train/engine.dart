@@ -28,6 +28,9 @@ class Engine extends TrainCar with TrainCarTooltip {
   /// A secondary inventory from which the engine pulls fuel from.
   final FuelTank? fuelTank;
 
+  @override
+  Iterable<Inventory>? get inventories => [fuelTank, inventory].whereNotNull();
+
   /// Engine power, in arbitrary units.
   final double power;
 
@@ -37,14 +40,8 @@ class Engine extends TrainCar with TrainCarTooltip {
   // TODO : Speed indicator, break, and transmission
   @override
   Widget? buildContent(BuildContext context) {
-    return Row(
-      children: [
-        if (fuelTank != null)
-          InventoryWidget(
-            fuelTank!,
-            game: game as OnTheRails,
-          ),
-      ],
+    return const Row(
+      children: [],
     );
   }
 }
@@ -56,19 +53,36 @@ List<TrainCar> buildJupiter() {
     length: 100,
     power: 10,
     weight: 32,
-    fuelTank: FuelTank(width: 2, height: 2),
+    fuelTank: FuelTank(name: "Firebox", width: 2, height: 2),
   );
   final fuelCar = TrainCar(
     length: 70,
     name: "Fuel Car",
     weight: 10,
-    inventory: FuelTank(width: 2, height: 4),
+    inventory: FuelTank(name: null, width: 2, height: 4),
   );
-  for (int i = 0; i < fuelCar.inventory!.cellCount; i++) {
+  for (int i = 0; i < 2; i++) {
     fuelCar.inventory!.insert(
-      // We want 8 different coal objects, plz and thx :P
+      // We want multiple different objects, plz and thx :P
       // ignore: prefer_const_constructors
-      Fuel(name: 'Coal', itemType: ItemType.bulk),
+      Fuel(
+        name: 'Coal',
+        itemType: ItemType.packaged,
+        modifiers: [ItemModifier.fireboxFuel, ItemModifier.moistureSensitive],
+      ),
+    );
+  }
+  for (int i = 0; i < 2; i++) {
+    fuelCar.inventory!.insert(
+      // We want multiple different objects, plz and thx :P
+      // ignore: prefer_const_constructors
+      Fuel(
+        name: 'Firewood',
+        itemType: ItemType.packaged,
+        modifiers: [ItemModifier.fireboxFuel, ItemModifier.moistureSensitive],
+        // shape: CellShape.unit,
+        shape: const CellShape([CellCoord.zero, CellCoord(1, 0)]),
+      ),
     );
   }
   return [

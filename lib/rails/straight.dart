@@ -26,14 +26,14 @@ abstract class _Straight extends Rail {
     super.key,
     required super.name,
     required super.coord,
-    List<Vector2>? shape,
+    CellShape? shape,
     super.angle,
     required this.length,
   }) : super(
             shape: shape ??
-                [
-                  for (int i = 0; i < length; i++) Vector2(i.toDouble(), 0),
-                ]);
+                CellShape([
+                  for (int i = 0; i < length; i++) CellCoord(i, 0),
+                ]));
 
   final int length;
 
