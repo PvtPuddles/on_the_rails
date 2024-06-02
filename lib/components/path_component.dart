@@ -16,6 +16,9 @@ class PathComponent extends PositionComponent {
   final Path path;
   final Paint _paint;
 
+  Color get color => _paint.color;
+  set color(Color value) => _paint.color = value;
+
   @override
   void render(Canvas canvas) {
     canvas.drawPath(path, _paint);

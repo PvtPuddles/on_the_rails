@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:on_the_rails/coord.dart';
 import 'package:on_the_rails/items/item.dart';
@@ -175,6 +176,10 @@ class ItemRef {
 
   @override
   int get hashCode => item.hashCode;
+}
+
+mixin HasInventory on PositionComponent {
+  Iterable<Inventory> get inventories;
 }
 
 class FuelTank extends Inventory {

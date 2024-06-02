@@ -1,10 +1,13 @@
+import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/services.dart';
 import 'package:on_the_rails/agents/agent.dart';
+import 'package:on_the_rails/app.dart';
+import 'package:on_the_rails/components/rails/rail.dart';
+import 'package:on_the_rails/components/train/train.dart';
 import 'package:on_the_rails/items/inventory.dart';
-import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/train/train.dart';
+import 'package:on_the_rails/world/world.dart';
 
 class UserAgent extends TrainAgent
     with KeyboardHandler, HasGameReference, Notifier {
@@ -12,14 +15,24 @@ class UserAgent extends TrainAgent
 
   static final instance = UserAgent._();
 
+  @override
+  OnTheRails get game => super.game as OnTheRails;
+
   PositionComponent? _focus;
 
   PositionComponent? get focus => _focus;
 
   set focus(PositionComponent? value) {
+    if (_oldFocus is TrainCar) {
+      _oldFocus!.position.removeListener(_showPois);
+    }
     _oldFocus = _focus;
     _lerpStart = DateTime.now();
     _focus = value;
+    if (_focus is TrainCar) {
+      _focus!.position.addListener(_showPois);
+    }
+    _showPois();
     notifyListeners();
   }
 
@@ -72,7 +85,7 @@ class UserAgent extends TrainAgent
         case LogicalKeyboardKey.space:
           train.append(TrainCar(
             name: "Boxcar",
-            length: 140,
+            length: 35 * worldScale,
             width: gauge + 4,
             inventory: Inventory(width: 4, height: 5),
           ));
@@ -128,5 +141,18 @@ class UserAgent extends TrainAgent
       t,
     )!
         .toVector2();
+  }
+
+  void _showPois() {
+    final car = _focus as TrainCar;
+    if ((car.train?.speed ?? 0) < 4) {
+      final pois = [car.frontRider.rail, car.backRider.rail]
+          .whereNotNull()
+          .map((rail) => game.world.poiMap[rail])
+          .expand((pois) => pois);
+      game.poiManager.set(pois);
+    } else {
+      game.poiManager.dismiss();
+    }
   }
 }

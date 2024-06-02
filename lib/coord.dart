@@ -82,6 +82,16 @@ class CellShape {
     final y = anchor.y * size.y;
     return Vector2(x, y);
   }
+
+  CellShape transform(CellCoord origin, {double angle = 0}) {
+    final cells = <CellCoord>[];
+    for (final cell in this.cells) {
+      final v2 = cell.toVector();
+      v2.rotate(angle);
+      cells.add(v2.toCoord() + origin);
+    }
+    return CellShape(cells);
+  }
 }
 
 extension VectorToCellCoord on Vector2 {

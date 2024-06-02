@@ -3,10 +3,11 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:on_the_rails/components/arrow_component.dart';
+import 'package:on_the_rails/components/rails/rail.dart';
 import 'package:on_the_rails/priorities.dart';
-import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/world.dart';
+import 'package:on_the_rails/world/world.dart';
 
 class RailConnection extends SpriteComponent with HasGameReference {
   RailConnection(
@@ -143,7 +144,7 @@ class RailConnection extends SpriteComponent with HasGameReference {
 
   @override
   void render(Canvas canvas) {
-    if (kDebugMode && drawPaths) {
+    if (kDebugMode && debugConnections) {
       paint = Paint();
       if (locked) paint.color = Colors.red.withOpacity(.1);
       super.render(canvas);
@@ -187,7 +188,7 @@ class _DebugDirectionComponent extends ArrowComponent {
 
   @override
   void render(Canvas canvas) {
-    if (kDebugMode && drawDirections) {
+    if (kDebugMode && debugDirections) {
       super.render(canvas);
     }
   }

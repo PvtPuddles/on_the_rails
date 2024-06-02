@@ -6,20 +6,19 @@ import 'package:flame/extensions.dart';
 import 'package:flame/sprite.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:on_the_rails/components/path_component.dart';
+import 'package:on_the_rails/components/rails/rail_connection.dart';
 import 'package:on_the_rails/priorities.dart';
-import 'package:on_the_rails/rails/rail_connection.dart';
-import 'package:on_the_rails/world.dart';
+import 'package:on_the_rails/world/world.dart';
 
-import '../components/path_component.dart';
 import 'bend.dart' as bend;
 import 'straight.dart' as straight;
-
-export 'package:flutter/material.dart';
 // @formatter:on
 
-const drawCells = false;
-const drawDirections = false;
-const drawPaths = false;
+const debugCells = false;
+const debugDirections = false;
+const debugPaths = true;
+const debugConnections = false;
 
 const allRails = [
   ...bend.rails,
@@ -27,6 +26,7 @@ const allRails = [
 ];
 
 const gauge = cellSize / 4;
+const sleeperWidth = 2 * gauge;
 
 abstract class Rail extends SpriteComponent with HasGameReference {
   Rail({
@@ -143,10 +143,13 @@ abstract class Rail extends SpriteComponent with HasGameReference {
   @protected
   Path buildPath();
 
+  Color get debugPathColor => _path.color;
+  set debugPathColor(Color value) => _path.color = value;
+
+  late final _path = RailPath(path, position: Vector2.zero());
+
   List<PositionComponent> debugComponents() {
-    return [
-      RailPath(path, position: Vector2.zero()),
-    ];
+    return [_path];
   }
 }
 
@@ -158,7 +161,7 @@ class RailPath extends PathComponent {
 
   @override
   void render(Canvas canvas) {
-    if (kDebugMode && drawPaths) {
+    if (kDebugMode && debugPaths) {
       super.render(canvas);
     }
   }
@@ -202,7 +205,7 @@ class RailCell extends SpriteComponent with HasGameReference {
 
   @override
   void render(Canvas canvas) {
-    if (kDebugMode && drawCells) {
+    if (kDebugMode && debugCells) {
       super.render(canvas);
     }
   }
@@ -222,17 +225,22 @@ class RailMap extends Component {
 
   Map<CellCoord, List<Rail>> rails = {};
 
+  List<Rail> operator [](CellCoord coord) {
+    return [...?rails[coord]];
+  }
+
   Map<CellCoord, List<RailConnection>> connections = {};
 
   Future<void> addRail(Rail rail) async {
-    // Add debug cells to world
-    if (kDebugMode) {
-      for (final cell in rail.shape.cells) {
-        bool isRailOrigin = cell.x == 0 && cell.y == 0;
-        final v2 = cell.toVector();
-        v2.rotate(rail.angle);
-        v2.multiply(Vector2.all(cellSize));
-        v2.add(rail.position);
+    // Register rail at each cell
+    for (final cell
+        in rail.shape.transform(rail.coord, angle: rail.angle).cells) {
+      rails.register(cell, rail);
+
+      // Add debug cells to world
+      if (kDebugMode) {
+        bool isRailOrigin = cell == rail.coord;
+        final v2 = cell.toVector() * cellSize;
         if (isRailOrigin) {
           add(RailCell.origin(position: v2, angle: rail.angle));
         } else {
@@ -241,11 +249,11 @@ class RailMap extends Component {
       }
     }
 
-    // Add rail itself
-    rails.register(rail.coord, rail);
+    // Register rail connections
     connections.addConnection(rail.startingConnection);
     connections.addConnection(rail.endingConnection);
 
+    // Add sprites
     await _railLayer.add(rail);
     _railLayer.add(rail.startingConnection);
     _railLayer.add(rail.endingConnection);

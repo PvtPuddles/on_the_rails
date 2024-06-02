@@ -1,5 +1,5 @@
 import 'package:flame/components.dart';
-import 'package:on_the_rails/train/train.dart';
+import 'package:on_the_rails/components/train/train.dart';
 
 class ControlAgent extends Component with HasGameRef {}
 

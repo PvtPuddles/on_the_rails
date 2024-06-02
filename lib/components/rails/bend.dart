@@ -1,9 +1,11 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
-import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/rails/rail_connection.dart';
-import 'package:on_the_rails/world.dart';
+import 'package:flutter/painting.dart';
+import 'package:on_the_rails/components/rails/rail.dart';
+import 'package:on_the_rails/world/world.dart';
+
+import 'rail_connection.dart';
 
 const rails = [
   "bend2x2",

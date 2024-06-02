@@ -29,7 +29,7 @@ class Engine extends TrainCar with TrainCarTooltip {
   final FuelTank? fuelTank;
 
   @override
-  Iterable<Inventory>? get inventories => [fuelTank, inventory].whereNotNull();
+  Iterable<Inventory> get inventories => [fuelTank, inventory].whereNotNull();
 
   /// Engine power, in arbitrary units.
   final double power;
@@ -50,13 +50,13 @@ class Engine extends TrainCar with TrainCarTooltip {
 List<TrainCar> buildJupiter() {
   final engine = Engine(
     name: "Jupiter 4-4-0",
-    length: 100,
+    length: cellSize * .8,
     power: 10,
     weight: 32,
     fuelTank: FuelTank(name: "Firebox", width: 2, height: 2),
   );
   final fuelCar = TrainCar(
-    length: 70,
+    length: cellSize / 2,
     name: "Fuel Car",
     weight: 10,
     inventory: FuelTank(name: null, width: 2, height: 4),
@@ -93,7 +93,7 @@ List<TrainCar> buildJupiter() {
 
 Engine buildHandCart() => Engine.single(
       name: "Hand Car",
-      length: 40,
+      length: cellSize / 2,
       power: .1,
       weight: .5,
       brakingForce: 1,

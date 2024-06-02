@@ -1,9 +1,7 @@
 import 'dart:math';
 
-import 'package:on_the_rails/rails/straight.dart';
-import 'package:on_the_rails/world.dart';
-
-import 'bend.dart';
+import 'package:on_the_rails/components/rails/shapes.dart';
+import 'package:on_the_rails/world/world.dart';
 
 abstract final class Layouts {
   static final test = [

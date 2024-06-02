@@ -3,12 +3,11 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:on_the_rails/items/inventory.dart';
 import 'package:on_the_rails/items/item.dart';
-import 'package:on_the_rails/train/train.dart';
 import 'package:on_the_rails/ui/widgets/item.dart';
-import 'package:on_the_rails/world.dart';
+import 'package:on_the_rails/world/world.dart';
 
 class InventoryWidget extends StatefulWidget {
-  static const double cellSize = 48;
+  static const double cellSize = 40;
 
   const InventoryWidget(
     this.inventory, {
@@ -163,14 +162,17 @@ class _InventoryWidgetState extends State<InventoryWidget> {
           // this breaks on the 4th item, every time.
           final targetComponents =
               List.from(widget.game.componentsAtPoint(cursor));
-          final car = targetComponents.whereType<TrainCar>().firstOrNull;
+          final target = targetComponents.whereType<HasInventory>().firstOrNull;
 
-          if (car is Engine && (car.fuelTank?.canAdd(item) ?? false)) {
-            inventory.remove(item);
-            car.fuelTank!.insert(item);
-          } else if (car?.inventory?.canAdd(item) ?? false) {
-            inventory.remove(item);
-            car!.inventory!.insert(item);
+          for (final inventory in [...?target?.inventories]) {
+            if (inventory.canAdd(item)) {
+              // Feel free to remove, I simply believe the item will always be
+              // coming from this inventory.
+              assert(oldRef!.inventory == this.inventory);
+              oldRef!.inventory.remove(item);
+              inventory.insert(item);
+              break;
+            }
           }
         },
         feedback: _buildCandidate(context, item),

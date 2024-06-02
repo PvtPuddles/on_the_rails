@@ -1,19 +1,14 @@
 // @formatter:off
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flame/input.dart';
 import 'package:flutter/foundation.dart';
-import 'package:on_the_rails/agents/user_agent.dart';
-import 'package:on_the_rails/rails/layouts.dart';
-import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/train/train.dart';
-import 'package:on_the_rails/ui/widgets/menus/tooltip_menu.dart';
-import 'package:on_the_rails/world.dart';
+import 'package:on_the_rails/components/rails/rail.dart';
+import 'package:on_the_rails/ui/overlays.dart';
+import 'package:on_the_rails/world/world.dart';
 // @formatter:on
 
 const trailingDistance = 80;
-
-final _rails = Layouts.cloverPlus;
 
 class OnTheRails extends FlameGame<RailWorld>
     with HasKeyboardHandlerComponents, TapDetector {
@@ -32,31 +27,12 @@ class OnTheRails extends FlameGame<RailWorld>
           "rail_segment_start",
         ].map((e) => "rails/debug/$e.png"),
     ]);
-
     camera.viewfinder.anchor = Anchor.center;
-
-    final uAgent = UserAgent.instance;
-    world.add(uAgent);
-
-    _addRails();
-    final train = Train(
-      agent: uAgent,
-      cars: [
-        ...buildJupiter(),
-      ],
-    );
-    uAgent.focus = train.cars.first;
-    train.rail = _rails.elementAtOrNull(4);
-    world.add(train);
 
     overlays.addEntry(
         "tooltipOverlay", (context, game) => TooltipOverlay(camera: camera));
     overlays.add("tooltipOverlay");
   }
 
-  void _addRails() {
-    for (final rail in _rails) {
-      world.addRail(rail);
-    }
-  }
+  late final poiManager = PoiManager(this);
 }

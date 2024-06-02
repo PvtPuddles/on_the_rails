@@ -5,21 +5,23 @@ import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
+import 'package:flutter/material.dart';
 import 'package:on_the_rails/agents/agent.dart';
 import 'package:on_the_rails/agents/user_agent.dart';
+import 'package:on_the_rails/components/rails/rail.dart';
+import 'package:on_the_rails/components/rails/rail_connection.dart';
 import 'package:on_the_rails/items/inventory.dart';
 import 'package:on_the_rails/items/item.dart';
 import 'package:on_the_rails/priorities.dart';
-import 'package:on_the_rails/rails/rail.dart';
-import 'package:on_the_rails/rails/rail_connection.dart';
+import 'package:on_the_rails/ui/menus/tooltip_menu.dart';
 import 'package:on_the_rails/ui/widgets/train/train_car_tooltip.dart';
-import 'package:on_the_rails/world.dart';
+import 'package:on_the_rails/world/world.dart';
 
 part 'engine.dart';
 part 'rider.dart';
 part 'train_car.dart';
 
-const double followDist = 10;
+const double followDist = 2 * worldScale;
 
 class Train extends Component with HasGameRef, KeyboardHandler {
   Train({
@@ -52,6 +54,10 @@ class Train extends Component with HasGameRef, KeyboardHandler {
     return engines.map((e) => e.power).sum;
   }
 
+  double _accelerationOf(double force) {
+    return force / (weight / 10);
+  }
+
   double get brakingForce {
     final engines = cars.whereType<Engine>();
     if (engines.isEmpty) return 0;
@@ -60,6 +66,8 @@ class Train extends Component with HasGameRef, KeyboardHandler {
 
   late final double maxReverseSpeed = .5 * maxSpeed;
   double speed = 0;
+
+  bool get isStopped => speed == 0;
 
   Rider get driver =>
       transmission.sign >= 0 ? cars.first.frontRider : cars.last.backRider;
@@ -107,15 +115,16 @@ class Train extends Component with HasGameRef, KeyboardHandler {
 
     final oldSpeed = speed;
     if (targetSpeed > speed) {
-      speed += min((power / (weight / 10)) * dt, targetSpeed - speed);
+      speed += min(_accelerationOf(power) * dt, targetSpeed - speed);
       if (oldSpeed == 0 && speed != 0) _onStart();
     } else if (targetSpeed < speed) {
-      speed -= min((brakingForce / (weight / 10)) * dt, speed - targetSpeed);
+      speed -= min(_accelerationOf(brakingForce) * dt, speed - targetSpeed);
       if (oldSpeed != 0 && speed == 0) _onStop();
     }
 
     if (speed != 0) {
-      cars.first.frontRider.moveForward(speed * transmission.sign * dt * 10);
+      cars.first.frontRider
+          .moveForward(speed * transmission.sign * (worldScale / 4) * dt * 10);
     }
 
     for (final (index, car) in cars.indexed) {

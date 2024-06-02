@@ -1,15 +1,13 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:on_the_rails/items/inventory.dart';
+import 'package:on_the_rails/ui/overlays.dart';
 import 'package:on_the_rails/ui/widgets/inventory.dart';
-import 'package:on_the_rails/ui/widgets/menus/tooltip_menu.dart';
-
-export 'package:on_the_rails/ui/widgets/menus/tooltip_menu.dart';
 
 abstract mixin class TrainCarTooltip implements HasTooltip {
   String? get name;
 
-  Iterable<Inventory>? get inventories;
+  Iterable<Inventory> get inventories;
 
   FlameGame get game;
 
@@ -30,8 +28,8 @@ abstract mixin class TrainCarTooltip implements HasTooltip {
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: content,
             ),
-          if (mode == TooltipMode.persistent && inventories != null)
-            for (final inventory in inventories!)
+          if (mode == TooltipMode.persistent)
+            for (final inventory in inventories)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: buildInventory(context, inventory),

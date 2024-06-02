@@ -1,7 +1,12 @@
 part of 'train.dart';
 
 class TrainCar extends RectangleComponent
-    with HasGameRef, TapCallbacks, HoverCallbacks, TrainCarTooltip {
+    with
+        HasGameRef,
+        TapCallbacks,
+        HoverCallbacks,
+        TrainCarTooltip,
+        HasInventory {
   TrainCar({
     super.key,
     this.name,
@@ -12,7 +17,8 @@ class TrainCar extends RectangleComponent
     this.maxSpeed = 30,
     this.weight = 22,
     this.inventory,
-  })  : riderSpacing = riderSpacing ?? max((length - 40) * 3 / 4, 30),
+  })  : riderSpacing = riderSpacing ??
+            max((length - (8 * worldScale)) * 3 / 4, (8 * worldScale)),
         super(
           priority: Priority.railCar,
           size: Vector2(length, width),
@@ -80,10 +86,12 @@ class TrainCar extends RectangleComponent
     }
   }
 
+  bool get isStopped => train?.isStopped ?? true;
+
   final Inventory? inventory;
 
   @override
-  late final Iterable<Inventory>? inventories = [inventory].whereNotNull();
+  late final Iterable<Inventory> inventories = [inventory].whereNotNull();
 
   @override
   void onMount() {
@@ -114,19 +122,21 @@ class TrainCar extends RectangleComponent
     _backRider?.trail(frontRider, distance: riderSpacing);
 
     if (_backRider == null) {
-      position = frontRider.position;
-      angle = frontRider.angle;
+      if (position != frontRider.position) position = frontRider.position;
+      if (angle != frontRider.angle) angle = frontRider.angle;
     } else {
-      position = (frontRider.position + _backRider.position) / 2;
-      final direction = (frontRider.position - position).toOffset().direction;
-      angle = direction % (2 * pi);
+      final newPos = (frontRider.position + _backRider.position) / 2;
+      if (position != newPos) position = newPos;
+      final direction =
+          (frontRider.position - position).toOffset().direction % (2 * pi);
+      if (angle != direction) angle = direction;
     }
   }
 
   set rail(Rail? value) {
     frontRider.rail = value;
     if (value != null) {
-      frontRider._distance = value.metric.length - 1;
+      frontRider._distance = value.metric.length - min(20, value.metric.length);
     } else {
       frontRider._distance = 0;
     }

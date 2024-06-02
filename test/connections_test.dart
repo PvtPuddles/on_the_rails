@@ -2,10 +2,8 @@ import 'dart:math';
 
 import 'package:flame/game.dart' as fg;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:on_the_rails/rails/bend.dart';
-import 'package:on_the_rails/rails/rail_connection.dart';
-import 'package:on_the_rails/rails/straight.dart';
-import 'package:on_the_rails/world.dart';
+import 'package:on_the_rails/components/rails/shapes.dart';
+import 'package:on_the_rails/world/world.dart';
 
 void main() {
   int degrees(double rads) => fg.degrees(rads).round() % 360;
