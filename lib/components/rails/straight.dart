@@ -11,8 +11,8 @@ const rails = [
   "straight1x1",
 ];
 
-class Straight1x1 extends _Straight {
-  Straight1x1({
+class Straight1 extends _Straight {
+  Straight1({
     super.key,
     required super.coord,
     super.angle,

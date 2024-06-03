@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
@@ -23,6 +25,10 @@ class CellCoord {
     return CellCoord(x + other.x, y + other.y);
   }
 
+  CellCoord operator *(int scalar) {
+    return CellCoord(x * scalar, y * scalar);
+  }
+
   @override
   int get hashCode => Object.hashAll([x, y]);
 
@@ -32,6 +38,34 @@ class CellCoord {
   @override
   String toString() {
     return "($x, $y)";
+  }
+
+  /// Rotates the [CellCoord] with [angle] in radians
+  /// rotates around [center] if it is defined
+  /// In a screen coordinate system (where the y-axis is flipped) it rotates in
+  /// a clockwise fashion
+  /// In a normal coordinate system it rotates in a counter-clockwise fashion
+  CellCoord rotate(double angle, {CellCoord? center}) {
+    int x = this.x;
+    int y = this.y;
+    if ((x == 0 && y == 0) || angle == 0) {
+      // No point in rotating the zero coord or to rotate with 0 as angle
+      return this;
+    }
+    late int newX;
+    late int newY;
+    if (center == null) {
+      newX = (x * cos(angle) - y * sin(angle)).round();
+      newY = (x * sin(angle) + y * cos(angle)).round();
+    } else {
+      newX =
+          (cos(angle) * (x - center.x) - sin(angle) * (y - center.y) + center.x)
+              .round();
+      newY =
+          (sin(angle) * (x - center.x) + cos(angle) * (y - center.y) + center.y)
+              .round();
+    }
+    return CellCoord(newX, newY);
   }
 }
 

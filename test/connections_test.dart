@@ -11,22 +11,28 @@ void main() {
   group("Connections", () {
     group("Angled Correctly", () {
       test("- Straight1x1", () {
-        final rail = Straight1x1(coord: CellCoord.zero);
+        final rail = Straight1(coord: CellCoord.zero);
+
         expect(degrees(RailConnection.directionToCenter(rail, true)), 0);
         expect(degrees(RailConnection.directionToCenter(rail, false)), 180);
 
         for (final double angle in [0, pi / 2, pi, 3 * pi / 2]) {
-          final rail = Straight1x1(coord: CellCoord.zero, angle: angle);
+          final rail = Straight1(coord: CellCoord.zero, angle: angle);
           final start = degrees(angle);
           final end = degrees(angle + pi);
           expect(degrees(rail.startingConnection.angle), start,
-              reason: "Failed angle $angle");
+              reason: "Failed angle $angle (Incorrect starting angle)");
+          expect(degrees(rail.startingConnection.targetAngle), end,
+              reason: "Failed angle $angle (Incorrect target angle)");
           expect(degrees(rail.startingConnection.railDirection), start,
-              reason: "Failed angle $angle");
+              reason:
+                  "Failed angle $angle (Incorrect starting rail direction)");
           expect(degrees(rail.endingConnection.angle), end,
-              reason: "Failed angle $angle");
+              reason: "Failed angle $angle (Incorrect ending angle)");
+          expect(degrees(rail.endingConnection.targetAngle), start,
+              reason: "Failed angle $angle (Incorrect target angle)");
           expect(degrees(rail.endingConnection.railDirection), end,
-              reason: "Failed angle $angle");
+              reason: "Failed angle $angle (Incorrect ending rail direction)");
         }
       });
 
@@ -65,7 +71,7 @@ void main() {
     group("Active Connections", () {
       test("- Straight1x1", () {
         const coord1 = CellCoord.zero;
-        final rail1 = Straight1x1(coord: coord1);
+        final rail1 = Straight1(coord: coord1);
         expect(rail1.startingConnection.coord, coord1);
         expect(rail1.endingConnection.coord, coord1);
 
@@ -77,7 +83,7 @@ void main() {
             [rail1.startingConnection, rail1.endingConnection]);
 
         const coord2 = CellCoord(1, 0);
-        final rail2 = Straight1x1(coord: coord2);
+        final rail2 = Straight1(coord: coord2);
         map.addConnection(rail2.startingConnection);
         map.addConnection(rail2.endingConnection);
         expect(map[coord2]?.length, 2);
@@ -127,7 +133,7 @@ void main() {
         final ConnectionMap map = {};
 
         // Pointing down
-        final stem = Straight1x1(coord: CellCoord.zero, angle: pi / 2);
+        final stem = Straight1(coord: CellCoord.zero, angle: pi / 2);
         map.addConnection(stem.startingConnection);
         map.addConnection(stem.endingConnection);
 

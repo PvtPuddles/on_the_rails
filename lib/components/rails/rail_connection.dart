@@ -39,9 +39,16 @@ class RailConnection extends SpriteComponent with HasGameReference {
 
   final Rail rail;
 
-  // Some jackass decided that rails should face upwards when rotated 0 degrees
-  // Nvm, finally fixed it
-  double get worldSpaceAngle => angle;
+  // /// The direction the rail connection is facing out there in the real world,
+  // /// taking rail's rotation into account.
+  // double get worldSpaceAngle => (angle - rail.angle) % (2 * pi);
+  //
+  // /// The direction the rail connection is facing out there in the real world,
+  // /// taking rail's rotation into account.
+  // double get worldSpaceTarget => (worldSpaceAngle - pi) % (2 * pi);
+
+  /// The angle pointing out of the rail through this connection.
+  double get targetAngle => (angle - pi) % (2 * pi);
 
   /// Local-space direction the rail moves in.
   ///
@@ -200,16 +207,16 @@ extension ConnectionOps on ConnectionMap {
   addConnection(RailConnection connection) {
     final rail = connection.rail;
     final cCell = rail.coord + connection.coord;
-    final cAngle = connection.worldSpaceAngle;
+    final cAngle = connection.angle;
     _register(cCell, connection);
     // Offset by 1.4 so that if we have diagonal rails in the future, they'll
     // round up, while cardinal rails will round down.
     final targetOffset =
         cCell.toOffset() + Offset.fromDirection(cAngle - pi, 1.4);
     final targetCell = targetOffset.toCoord();
-    final partnerAngle = (connection.worldSpaceAngle - pi) % (2 * pi);
+    final partnerAngle = (connection.angle - pi) % (2 * pi);
     final partners = this[targetCell]?.where((p) {
-      return p.worldSpaceAngle == partnerAngle;
+      return p.angle == partnerAngle;
     });
 
     if (partners != null) {
