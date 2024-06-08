@@ -11,7 +11,15 @@ const rails = [
   "bend2x2",
 ];
 
-class Bend2x2 extends Rail {
+/// A bent rail.
+///
+/// Bends should always bend in the negative direction;
+/// - In UI-Space (+y axis down): to the left
+/// - In Cartesian space (+y axis up): to the right
+///
+/// Since the sprite is rendered in UI space, make sure that the bend sprite
+/// curves to the left.
+class Bend2x2 extends Bend {
   Bend2x2({
     super.key,
     required super.coord,
@@ -48,6 +56,15 @@ class Bend2x2 extends Rail {
   );
 
   @override
+  Bend get flipped {
+    return Bend2x2(
+      coord: coord -
+          endingConnection.coord.rotate(-(pi / 2), center: CellCoord.zero),
+      angle: (angle - (pi / 2)) % (2 * pi),
+    );
+  }
+
+  @override
   Path buildPath() {
     return pathTemplate();
   }
@@ -70,4 +87,16 @@ class Bend2x2 extends Rail {
 
     return path;
   }
+}
+
+abstract class Bend extends Rail {
+  Bend({
+    super.key,
+    required super.name,
+    required super.shape,
+    required super.coord,
+    super.angle,
+  });
+
+  Bend get flipped;
 }

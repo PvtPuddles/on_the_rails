@@ -146,11 +146,11 @@ class UserAgent extends TrainAgent
   void _showPois() {
     final car = _focus as TrainCar;
     if ((car.train?.speed ?? 0) < 4) {
-      final pois = [car.frontRider.rail, car.backRider.rail]
-          .whereNotNull()
-          .map((rail) => game.world.poiMap[rail])
-          .expand((pois) => pois);
-      game.poiManager.set(pois);
+      final riderPois = [car.frontRider.rail, car.backRider.rail]
+          .map((rail) =>
+              rail == null ? null : game.world.poiMap.poisByRail[rail])
+          .whereNotNull();
+      game.poiManager.set(riderPois.flattened.toSet());
     } else {
       game.poiManager.dismiss();
     }

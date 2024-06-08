@@ -11,7 +11,7 @@ const rails = [
   "straight1x1",
 ];
 
-class Straight1 extends _Straight {
+class Straight1 extends Straight {
   Straight1({
     super.key,
     required super.coord,
@@ -22,8 +22,8 @@ class Straight1 extends _Straight {
         super(name: rails[0], length: 1);
 }
 
-abstract class _Straight extends Rail {
-  _Straight({
+abstract class Straight extends Rail {
+  Straight({
     super.key,
     required super.name,
     required super.coord,

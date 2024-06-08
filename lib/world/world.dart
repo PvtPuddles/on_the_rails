@@ -71,6 +71,13 @@ class RailWorld extends World {
   void addPoi(Poi poi) {
     poiMap.add(poi);
   }
+
+  List<Object> operator [](CellCoord coord) {
+    return [
+      ...railMap[coord],
+      ...poiMap[coord],
+    ];
+  }
 }
 
 extension Register<K, T> on Map<K, List<T>> {

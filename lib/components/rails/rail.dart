@@ -1,6 +1,8 @@
 // @formatter:off
+import 'dart:math';
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/sprite.dart';
@@ -51,6 +53,8 @@ abstract class Rail extends SpriteComponent with HasGameReference {
 
   /// The cells that this rail covers, relative to the anchor cell (0, 0)
   final CellShape shape;
+
+  CellShape get worldShape => shape.transform(coord, angle: angle);
 
   RailConnection get startingConnection;
   RailConnection get endingConnection;
@@ -223,19 +227,25 @@ class RailMap extends Component {
     await addAll([_railLayer, _tieLayer, _sleeperLayer]);
   }
 
-  Map<CellCoord, List<Rail>> rails = {};
+  Map<CellCoord, List<Rail>> map = {};
 
   List<Rail> operator [](CellCoord coord) {
-    return [...?rails[coord]];
+    return [...?map[coord]];
   }
 
   Map<CellCoord, List<RailConnection>> connections = {};
+
+  Future<void> addAllRails(Iterable<Rail> rails) async {
+    for (final rail in rails) {
+      await addRail(rail);
+    }
+  }
 
   Future<void> addRail(Rail rail) async {
     // Register rail at each cell
     for (final cell
         in rail.shape.transform(rail.coord, angle: rail.angle).cells) {
-      rails.register(cell, rail);
+      map.register(cell, rail);
 
       // Add debug cells to world
       if (kDebugMode) {
@@ -267,5 +277,59 @@ class RailMap extends Component {
   void dismount(Rail rail) {
     _tieLayer.remove(rail._ties);
     _sleeperLayer.remove(rail._sleeper);
+  }
+
+  String draw() {
+    final rails = map.values.flattened;
+    if (rails.isEmpty) return "";
+
+    return drawRails(rails, map);
+  }
+
+  static String drawRails(Iterable<Rail> rails,
+      [Map<CellCoord, List<Rail>>? map]) {
+    if (map == null) {
+      map = <CellCoord, List<Rail>>{};
+      for (final rail in rails) {
+        for (final cell
+            in rail.shape.transform(rail.coord, angle: rail.angle).cells) {
+          map.register(cell, rail);
+        }
+      }
+    }
+
+    final cells = rails
+        .expand(
+            (rail) => rail.shape.transform(rail.coord, angle: rail.angle).cells)
+        .toList();
+    final worldShape = CellShape(cells);
+    final (min, max) = worldShape.bounds;
+    final yRange = max.y - min.y + 1;
+    final xRange = max.x - min.x + 1;
+    List<List<String>> shapes = List.generate(
+      yRange,
+      (index) => List.filled(xRange, "  "),
+    );
+    for (int y = 0; y <= yRange; y++) {
+      for (int x = 0; x <= xRange; x++) {
+        final coord = CellCoord(x + min.x, max.y - y);
+        final rails = map[coord];
+        if (rails?.isEmpty ?? true) continue;
+        rails!;
+        if (rails.length > 1) {
+          shapes[y][x] = "▣ ";
+        } else if (rails.single.coord != coord) {
+          shapes[y][x] = "▢ ";
+        } else {
+          shapes[y][x] = switch (rails.single.angle) {
+            < pi / 2 => "▷ ",
+            < pi => "△ ",
+            < 3 * pi / 2 => "◁ ",
+            _ => "▽ ",
+          };
+        }
+      }
+    }
+    return shapes.map((row) => row.join()).join("\n");
   }
 }

@@ -25,8 +25,20 @@ class CellCoord {
     return CellCoord(x + other.x, y + other.y);
   }
 
+  CellCoord operator -(CellCoord other) {
+    return CellCoord(x - other.x, y - other.y);
+  }
+
+  CellCoord operator -() {
+    return CellCoord(-x, -y);
+  }
+
   CellCoord operator *(int scalar) {
     return CellCoord(x * scalar, y * scalar);
+  }
+
+  CellCoord abs() {
+    return CellCoord(x.abs(), y.abs());
   }
 
   @override

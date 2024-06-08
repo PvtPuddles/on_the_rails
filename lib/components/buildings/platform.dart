@@ -35,6 +35,7 @@ class Platform extends RectangleComponent with HasGameRef, HasInventory, Poi {
 
   @override
   final String name;
+  @override
   final CellCoord coord;
   final int length;
   final Inventory? inventory;
@@ -42,6 +43,7 @@ class Platform extends RectangleComponent with HasGameRef, HasInventory, Poi {
   @override
   Iterable<Inventory> get inventories => [inventory].whereNotNull();
 
+  @override
   late final CellShape shape;
 
   late final Vector2 _dirToRail = Vector2(0, 1)..rotate(angle);
