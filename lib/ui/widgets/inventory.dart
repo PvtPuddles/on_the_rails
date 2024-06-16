@@ -78,7 +78,7 @@ class _InventoryWidgetState extends State<InventoryWidget> {
                     defaultColumnWidth:
                         const FixedColumnWidth(InventoryWidget.cellSize),
                     border: TableBorder.all(
-                      color: Theme.of(context).colorScheme.onBackground,
+                      color: Theme.of(context).colorScheme.onSurface,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     children: [

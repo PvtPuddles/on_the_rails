@@ -39,6 +39,11 @@ class RailConnection extends SpriteComponent with HasGameReference {
 
   final Rail rail;
 
+  /// The [RailConnection] at the other end of the [rail].
+  late final RailConnection partner = this == rail.startingConnection
+      ? rail.endingConnection
+      : rail.startingConnection;
+
   // /// The direction the rail connection is facing out there in the real world,
   // /// taking rail's rotation into account.
   // double get worldSpaceAngle => (angle - rail.angle) % (2 * pi);
@@ -49,6 +54,10 @@ class RailConnection extends SpriteComponent with HasGameReference {
 
   /// The angle pointing out of the rail through this connection.
   double get targetAngle => (angle - pi) % (2 * pi);
+
+  /// The cell this connection is targeting.
+  CellCoord get targetCell =>
+      (coord + rail.coord) + const CellCoord(1, 0).rotate(targetAngle);
 
   /// Local-space direction the rail moves in.
   ///
@@ -80,10 +89,12 @@ class RailConnection extends SpriteComponent with HasGameReference {
     assert(other.angle == targetAngle);
 
     connections.add(other);
-    assert(
-      connections.length <= 3,
-      "There are only 3 directions; left, right, and neutral.",
-    );
+    activeConnection ??= other;
+    other.activeConnection ??= this;
+    // assert(
+    //   connections.length <= 3,
+    //   "There are only 3 directions; left, right, and neutral.",
+    // );
     if (connections.length > 1) {
       double relativeAngle(RailConnection connection) {
         double angle = connection.railDirection;
@@ -204,7 +215,7 @@ class _DebugDirectionComponent extends ArrowComponent {
 typedef ConnectionMap = Map<CellCoord, List<RailConnection>>;
 
 extension ConnectionOps on ConnectionMap {
-  addConnection(RailConnection connection) {
+  void addConnection(RailConnection connection) {
     final rail = connection.rail;
     final cCell = rail.coord + connection.coord;
     final cAngle = connection.angle;

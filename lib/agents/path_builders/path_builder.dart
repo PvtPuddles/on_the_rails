@@ -1,9 +1,11 @@
 import 'dart:math';
-import 'dart:ui';
 
-import 'package:flame/components.dart';
+import 'package:collection/collection.dart';
+import 'package:flame/extensions.dart';
 import 'package:on_the_rails/components/rails/shapes.dart';
 import 'package:on_the_rails/world/world.dart';
+
+part 'a_star.dart';
 
 class PathBuilder {
   /// Straight rails, from longest to shortest
@@ -68,7 +70,7 @@ class PathBuilder {
     a %= 2 * pi;
     b %= 2 * pi;
     final cw = (b - a) % (2 * pi);
-    final ccw = (b - (2 * pi + a)).abs() % (2 * pi);
+    final ccw = (b - a - (2 * pi)).abs() % (2 * pi);
     if (cw <= ccw) return cw;
     return -ccw;
   }

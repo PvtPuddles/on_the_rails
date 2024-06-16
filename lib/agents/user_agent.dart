@@ -4,10 +4,7 @@ import 'package:flame/extensions.dart';
 import 'package:flutter/services.dart';
 import 'package:on_the_rails/agents/agent.dart';
 import 'package:on_the_rails/app.dart';
-import 'package:on_the_rails/components/rails/rail.dart';
 import 'package:on_the_rails/components/train/train.dart';
-import 'package:on_the_rails/items/inventory.dart';
-import 'package:on_the_rails/world/world.dart';
 
 class UserAgent extends TrainAgent
     with KeyboardHandler, HasGameReference, Notifier {
@@ -61,6 +58,7 @@ class UserAgent extends TrainAgent
   }
 
   int _throttleDirection = 0;
+  int steps = 0;
 
   bool handleTrainControls(
       KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
@@ -83,12 +81,44 @@ class UserAgent extends TrainAgent
 
         /// Other Stuff
         case LogicalKeyboardKey.space:
+          final aStar = game.world.aStar;
+          const manual = false;
+          if (manual) {
+            steps++;
+            print("space $steps");
+
+            void onStep(bool found) {
+              if (found) {
+                print("...Found...");
+                game.world.addRail(aStar.openConnections.single.rail);
+                throw Exception("Done!");
+              }
+
+              final newRails = aStar.openConnections
+                  .map((e) => e.rail)
+                  .whereNot((r) => game.world.railMap[r.coord].contains(r));
+              for (final rail in newRails) {
+                game.world.addRail(rail);
+              }
+            }
+
+            aStar.step().then(onStep);
+          } else {
+            aStar.buildPath().then((path) {
+              for (final rail in path) {
+                game.world.addRail(rail);
+              }
+            });
+          }
+
+        /*
           train.append(TrainCar(
             name: "Boxcar",
             length: 35 * worldScale,
             width: gauge + 4,
             inventory: Inventory(width: 4, height: 5),
           ));
+          */
         case LogicalKeyboardKey.delete || LogicalKeyboardKey.backspace:
           final removed = train.cars.removeLast();
           game.world.remove(removed);

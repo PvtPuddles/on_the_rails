@@ -1,9 +1,7 @@
-// ignore_for_file: unused_local_variable
-
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:on_the_rails/agents/path_builder.dart';
+import 'package:on_the_rails/agents/path_builders/path_builder.dart';
 import 'package:on_the_rails/components/rails/shapes.dart';
 import 'package:on_the_rails/world/world.dart';
 
@@ -79,19 +77,26 @@ void main() {
 
   group("Curves", () {
     group("angleBetween()", () {
-      test("right angle", () {
+      test("Right angle", () {
         expect(_degrees(PathBuilder.angleBetween(0, pi / 2)), 90);
         expect(_degrees(PathBuilder.angleBetween(pi / 2, 0)), -90);
 
         expect(_degrees(PathBuilder.angleBetween(pi / 2, pi)), 90);
         expect(_degrees(PathBuilder.angleBetween(pi, pi / 2)), -90);
+
+        expect(_degrees(PathBuilder.angleBetween(-pi / 4, pi / 4)), 90);
+        expect(_degrees(PathBuilder.angleBetween(pi / 4, -pi / 4)), -90);
       });
-      test("acute angle", () {
+      test("Acute angle", () {
         expect(_degrees(PathBuilder.angleBetween(0, pi / 4)), 45);
         expect(_degrees(PathBuilder.angleBetween(pi / 4, 0)), -45);
 
         expect(_degrees(PathBuilder.angleBetween(pi, pi + pi / 4)), 45);
         expect(_degrees(PathBuilder.angleBetween(pi + pi / 4, pi)), -45);
+      });
+      test("Obtuse angle", () {
+        expect(_degrees(PathBuilder.angleBetween(0, 3 * pi / 4)), 135);
+        expect(_degrees(PathBuilder.angleBetween(3 * pi / 4, 0)), -135);
       });
     });
 
@@ -443,6 +448,315 @@ void main() {
           );
         });
       });
+    });
+
+    // group("S Bends", () {
+    //   group("Clockwise", () {
+    //     test("S Up", () {
+    //       final start = Straight1(coord: center, angle: 0);
+    //       final end = Straight1(coord: topRight, angle: 0);
+    //       final path = PathBuilder.buildPathBetween(
+    //           start.endingConnection, end.startingConnection);
+    //
+    //       expect(
+    //         "\n${RailMap.drawRails(path)}",
+    //         "\n"
+    //             /*       1 2 3 4  */
+    //             /* 4 */ "    ▢ ▷ \n"
+    //             /* 3 */ "  △     \n"
+    //             /* 2 */ "  △     \n"
+    //             /* 1 */ "  ▽     \n"
+    //             /* 0 */ "▢       ",
+    //       );
+    //     });
+    //
+    //     test("CC Right", () {
+    //       final start = Straight1(coord: left, angle: pi / 2);
+    //       final end = Straight1(coord: top, angle: 0);
+    //       final path = PathBuilder.buildPathBetween(
+    //           start.endingConnection, end.startingConnection);
+    //       expect(
+    //         path.map((e) => e.coord),
+    //         const [
+    //           CellCoord(-5, 1),
+    //           CellCoord(-5, 2),
+    //           CellCoord(-5, 3),
+    //           CellCoord(-5, 4), // Curve
+    //           CellCoord(-3, 5),
+    //           CellCoord(-2, 5),
+    //           CellCoord(-1, 5),
+    //         ],
+    //       );
+    //     });
+    //
+    //     test("CC Down", () {
+    //       final start = Straight1(coord: top, angle: 0);
+    //       final end = Straight1(coord: right, angle: -pi / 2);
+    //       final path = PathBuilder.buildPathBetween(
+    //           start.endingConnection, end.startingConnection);
+    //       expect(
+    //         path.map((e) => e.coord),
+    //         const [
+    //           CellCoord(1, 5),
+    //           CellCoord(2, 5),
+    //           CellCoord(3, 5),
+    //           CellCoord(4, 5), // Curve
+    //           CellCoord(5, 3),
+    //           CellCoord(5, 2),
+    //           CellCoord(5, 1),
+    //         ],
+    //       );
+    //     });
+    //
+    //     test("CC Left", () {
+    //       final start = Straight1(coord: right, angle: -pi / 2);
+    //       final end = Straight1(coord: bottom, angle: -pi);
+    //       final path = PathBuilder.buildPathBetween(
+    //           start.endingConnection, end.startingConnection);
+    //       expect(
+    //         path.map((e) => e.coord),
+    //         const [
+    //           CellCoord(5, -1),
+    //           CellCoord(5, -2),
+    //           CellCoord(5, -3),
+    //           CellCoord(5, -4), // Curve
+    //           CellCoord(3, -5),
+    //           CellCoord(2, -5),
+    //           CellCoord(1, -5),
+    //         ],
+    //       );
+    //     });
+    //   });
+    // });
+  });
+
+  group("A*", () {
+    test("Path of", () async {
+      // final map = RailMap();
+      // const delta = CellCoord(1, 0);
+      // final a = Straight1(coord: center);
+      // final b = Straight1(coord: center + delta, angle: pi);
+      // final c = Straight1(coord: center + (delta * 2));
+      // await map.addAllRails([a, b, c]);
+      // expect(c.endingConnection.getPathTo(a), [c, b, a]);
+    });
+
+    group("Straight", () {
+      test("Right", () async {
+        final start = Straight1(coord: center, angle: 0);
+        final end = Straight1(coord: right, angle: 0);
+
+        final path = await (AStarBuilder(
+                from: start.endingConnection, to: end.startingConnection)
+            .buildPath());
+        expect(RailMap.drawRails(path), "▷ ▷ ▷ ▷ ");
+      });
+
+      test("Up", () async {
+        final start = Straight1(coord: center, angle: pi / 2);
+        final end = Straight1(coord: top, angle: pi / 2);
+
+        final path = await (AStarBuilder(
+                from: start.endingConnection, to: end.startingConnection)
+            .buildPath());
+        expect(RailMap.drawRails(path), '△ \n△ \n△ \n△ ');
+      });
+    });
+
+    // Not happy with how the algorithm handles diagonal lines
+    group("Curves", skip: "Improve Diagonals", () {
+      group("Clockwise", () {
+        test("CC Up", () async {
+          final start = Straight1(coord: bottom, angle: -pi);
+          final end = Straight1(coord: left, angle: pi / 2);
+          final path = await AStarBuilder(
+                  from: start.endingConnection, to: end.startingConnection)
+              .buildPath();
+          expect(
+            path.map((e) => e.coord),
+            const [
+              CellCoord(-1, -5),
+              CellCoord(-2, -5),
+              CellCoord(-3, -5),
+              CellCoord(-4, -5), // Curve
+              CellCoord(-5, -3),
+              CellCoord(-5, -2),
+              CellCoord(-5, -1),
+            ],
+          );
+        });
+
+        test("CC Right", () async {
+          final start = Straight1(coord: left, angle: pi / 2);
+          final end = Straight1(coord: top, angle: 0);
+          final path = await AStarBuilder(
+                  from: start.endingConnection, to: end.startingConnection)
+              .buildPath();
+          expect(
+            path.map((e) => e.coord),
+            const [
+              CellCoord(-5, 1),
+              CellCoord(-5, 2),
+              CellCoord(-5, 3),
+              CellCoord(-5, 4), // Curve
+              CellCoord(-3, 5),
+              CellCoord(-2, 5),
+              CellCoord(-1, 5),
+            ],
+          );
+        });
+
+        test("CC Down", () async {
+          final start = Straight1(coord: top, angle: 0);
+          final end = Straight1(coord: right, angle: -pi / 2);
+          final path = await AStarBuilder(
+                  from: start.endingConnection, to: end.startingConnection)
+              .buildPath();
+          expect(
+            path.map((e) => e.coord),
+            const [
+              CellCoord(1, 5),
+              CellCoord(2, 5),
+              CellCoord(3, 5),
+              CellCoord(4, 5), // Curve
+              CellCoord(5, 3),
+              CellCoord(5, 2),
+              CellCoord(5, 1),
+            ],
+          );
+        });
+
+        test("CC Left", () async {
+          final start = Straight1(coord: right, angle: -pi / 2);
+          final end = Straight1(coord: bottom, angle: -pi);
+          final path = await AStarBuilder(
+                  from: start.endingConnection, to: end.startingConnection)
+              .buildPath();
+          expect(
+            path.map((e) => e.coord),
+            const [
+              CellCoord(5, -1),
+              CellCoord(5, -2),
+              CellCoord(5, -3),
+              CellCoord(5, -4), // Curve
+              CellCoord(3, -5),
+              CellCoord(2, -5),
+              CellCoord(1, -5),
+            ],
+          );
+        });
+      });
+
+      group("Counter Clockwise", () {
+        test("CCW Up", () async {
+          final start = Straight1(coord: bottom, angle: pi);
+          final end = Straight1(coord: right, angle: pi / 2);
+          final path = await AStarBuilder(
+                  from: start.endingConnection, to: end.startingConnection)
+              .buildPath();
+          expect(
+            path.map((e) => e.coord),
+            const [
+              CellCoord(1, -5),
+              CellCoord(2, -5),
+              CellCoord(3, -5),
+              CellCoord(4, -5), // Curve
+              CellCoord(5, -3),
+              CellCoord(5, -2),
+              CellCoord(5, -1),
+            ],
+          );
+        });
+
+        test("CCW Left", () async {
+          final start = Straight1(coord: right, angle: pi / 2);
+          final end = Straight1(coord: top, angle: -pi);
+          final path = await AStarBuilder(
+                  from: start.endingConnection, to: end.startingConnection)
+              .buildPath();
+          expect(
+            path.map((e) => e.coord),
+            const [
+              CellCoord(5, 1),
+              CellCoord(5, 2),
+              CellCoord(5, 3),
+              CellCoord(4, 5), // Curve
+              CellCoord(3, 5),
+              CellCoord(2, 5),
+              CellCoord(1, 5),
+            ],
+          );
+        });
+
+        test("CCW Down", () async {
+          final start = Straight1(coord: top, angle: 0);
+          final end = Straight1(coord: left, angle: -pi / 2);
+          final path = await AStarBuilder(
+                  from: start.endingConnection, to: end.startingConnection)
+              .buildPath();
+          expect(
+            path.map((e) => e.coord),
+            const [
+              CellCoord(-1, 5),
+              CellCoord(-2, 5),
+              CellCoord(-3, 5),
+              CellCoord(-4, 5), // Curve
+              CellCoord(-5, 3),
+              CellCoord(-5, 2),
+              CellCoord(-5, 1),
+            ],
+          );
+        });
+
+        test("CCW Right", () async {
+          final start = Straight1(coord: left, angle: -pi / 2);
+          final end = Straight1(coord: bottom, angle: pi);
+          final path = await AStarBuilder(
+                  from: start.endingConnection, to: end.startingConnection)
+              .buildPath();
+          expect(
+            path.map((e) => e.coord),
+            const [
+              CellCoord(-5, -1),
+              CellCoord(-5, -2),
+              CellCoord(-5, -3),
+              CellCoord(-5, -4), // Curve
+              CellCoord(-3, -5),
+              CellCoord(-2, -5),
+              CellCoord(-1, -5),
+            ],
+          );
+        });
+      });
+    });
+
+    test("U Turn", () async {
+      final start = Straight1(coord: bottom, angle: 0);
+      final end = Straight1(coord: center, angle: pi);
+      final cw = await AStarBuilder(
+              from: end.startingConnection, to: start.endingConnection)
+          .buildPath();
+      final ccw = await AStarBuilder(
+              from: start.endingConnection, to: end.startingConnection)
+          .buildPath();
+      expect(
+        RailMap.drawRails(cw),
+        "▷   \n"
+        "  ▢ \n"
+        "  ▽ \n"
+        "  ▽ \n"
+        "  ▽ \n"
+        "▢   ",
+      );
+      expect(
+        RailMap.drawRails(ccw),
+        "▷   \n"
+        "  ▢ \n"
+        "  △ \n"
+        "  △ \n"
+        "  ▽ \n"
+        "▢   ",
+      );
     });
   });
 }

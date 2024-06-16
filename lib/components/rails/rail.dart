@@ -19,7 +19,7 @@ import 'straight.dart' as straight;
 
 const debugCells = false;
 const debugDirections = false;
-const debugPaths = true;
+const debugPaths = false;
 const debugConnections = false;
 
 const allRails = [
@@ -215,7 +215,7 @@ class RailCell extends SpriteComponent with HasGameReference {
   }
 }
 
-class RailMap extends Component {
+class RailMap extends Component with HasGameRef {
   RailMap();
 
   final _railLayer = Component(priority: Priority.rail);
@@ -263,10 +263,13 @@ class RailMap extends Component {
     connections.addConnection(rail.startingConnection);
     connections.addConnection(rail.endingConnection);
 
-    // Add sprites
-    await _railLayer.add(rail);
-    _railLayer.add(rail.startingConnection);
-    _railLayer.add(rail.endingConnection);
+    // Add sprites (if part of a game)
+    try {
+      final _ = game;
+      _railLayer.add(rail);
+      _railLayer.add(rail.startingConnection);
+      _railLayer.add(rail.endingConnection);
+    } on AssertionError {/*  */}
   }
 
   Future<void> mount(Rail rail) async {
