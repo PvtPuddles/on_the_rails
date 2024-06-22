@@ -1,17 +1,34 @@
 part of 'path_builder.dart';
 
-const maxSteps = 400;
+const maxSteps = 500;
 
 /// Cost applied for rails going the wrong direction.
 ///
-/// The [cost] is applied to any rail outside of [minDist]
-const wrongDirectionPenalty = (cost: 15, minDist: 2);
+/// The [cost] is applied to any rail outside of [minDist].
+///
+/// Generally speaking, the higher the cost, the fewer iterations the algorithm
+/// takes, though the less the algorithm is willing to follow existing paths,
+/// and instead will take diagonals.
+const wrongDirectionPenalty = (cost: 5, minDist: 3);
+
+/// Multiplier applied to discount existing rails in path building.
+///
+/// The lower this number, the more eager the algorithm is to share rails, even
+/// at the cost of total route length.
+const prebuiltModifier = .25;
+
+/// Modifier applied to the end point's distance from the target.
+///
+/// The larger this value, the more the algorithm is penalized for exploring
+/// nodes far away from the destination.
+const distanceModifier = sqrt2;
 
 class AStarBuilder {
   AStarBuilder({required this.from, required this.to, RailWorld? world})
-      : world = world ?? RailWorld()
-          ..addRail(from.rail)
-          ..addRail(to.rail);
+      : world = world ??
+            (RailWorld()
+              ..addRail(from.rail)
+              ..addRail(to.rail));
 
   final RailConnection from;
   final RailConnection to;
@@ -24,14 +41,16 @@ class AStarBuilder {
   /// A source world containing rails and other obstacles
   final RailWorld world;
 
-  /// Rails we plan to insert into the world
-  final RailMap insertions = RailMap();
+  /// Nodes we plan to insert
+  late final NodeMap insertions = NodeMap()
+    ..add(PathNode.to(from.rail, end: from));
 
   late List<RailConnection> openConnections = [from];
 
+  late List<PathNode> nodesToExplore = [PathNode.to(from.rail, end: from)];
+
   Future<Iterable<Rail>> buildPath() async {
     int steps = 0;
-    print("Begin");
     try {
       bool found = false;
       do {
@@ -42,19 +61,28 @@ class AStarBuilder {
         }
       } while (!found);
     } catch (e) {
-      print("Error building path: $e");
+      debugPrint("Error building path: $e");
       rethrow;
     }
-    final lastConnection = openConnections.single;
-    final rawPath = _pathOf(lastConnection).toList();
-    print("Built path in $steps steps (${rawPath.length})");
+    final lastNode = nodesToExplore.single;
+    late List<Rail> rawPath;
+    try {
+      rawPath = _pathOf(lastNode).toList();
+    } on StateError catch (_) {
+      rethrow;
+    }
+    debugPrint("Found path in $steps steps");
     return cleanPath(rawPath.reversed);
   }
 
   Iterable<Rail> cleanPath(Iterable<Rail> path) sync* {
     for (final rail in path) {
-      if (rail == from.rail) continue;
+      if (rail == from.rail) {
+        continue;
+      }
       if (rail == to.rail) continue;
+      // Exclude rails that were already in the world
+      if (world.railMap[rail.coord].contains(rail)) continue;
 
       for (final c in [rail.startingConnection, rail.endingConnection]) {
         c.activeConnection = null;
@@ -65,99 +93,144 @@ class AStarBuilder {
   }
 
   Future<bool> step() async {
-    final next = openConnections.removeAt(0);
+    final next = nodesToExplore.removeAt(0);
     final added = await addOptionsFrom(next);
 
-    if (openConnections.isEmpty) {
-      throw Exception("Pathfinding failed.  No more paths to try");
+    if (nodesToExplore.isEmpty) {
+      throw Exception("Pathfinding failed.  No more nodes to try");
     }
-    for (final newConnection in added) {
-      final target = newConnection.targetCell;
-      if (target == to.coord + to.rail.coord &&
-          newConnection.targetAngle == to.angle) {
-        print("...?");
-        openConnections = [newConnection];
-        return true;
-      }
+
+    bool isWinner(PathNode node) {
+      final target = node.end.targetCell;
+      return (target == to.coord + to.rail.coord &&
+          node.end.targetAngle == to.angle);
     }
+
+    final winner = added.firstWhereOrNull(isWinner);
+
+    if (winner != null) {
+      nodesToExplore = [winner];
+      return true;
+    }
+
     return false;
   }
 
-  Future<List<RailConnection>> addOptionsFrom(RailConnection connection) async {
-    final angle = connection.targetAngle;
-    final coord = connection.targetCell;
+  Future<List<PathNode>> addOptionsFrom(PathNode node) async {
+    final angle = node.end.targetAngle;
+    final coord = node.end.targetCell;
 
-    final List<Rail> allOptions = [
+    final List<PathNode> allOptions = [
       ...PathBuilder.straights.map(
-        (builder) => builder.$1.call(angle: angle, coord: coord),
+        (builder) {
+          final rail = builder.$1.call(angle: angle, coord: coord);
+          return PathNode(rail, start: rail.startingConnection);
+        },
       ),
       ...PathBuilder.bends.expand((builder) {
         final bend = builder.$1.call(angle: angle, coord: coord);
-        return [bend, bend.flipped];
+        final flipped = bend.flipped;
+        return [
+          PathNode(bend, start: bend.startingConnection),
+          PathNode(flipped, start: flipped.endingConnection),
+        ];
       }),
     ];
 
-    /// Returns the newly created connection from a rail coming from this
-    /// [connection].
-    RailConnection newConnectionOf(Rail rail) {
-      final connection = [rail.endingConnection, rail.startingConnection]
-          .firstWhere((c) => c.angle == angle);
-      return connection.partner;
-    }
+    Iterable<PathNode> options = allOptions.whereNot((node) {
+      const exclude = true;
 
-    /// Rails that are not already inserted
-    Iterable<Rail> options =
-        allOptions.whereNot((rail) => insertions[rail.coord].contains(rail));
+      /// Remove nodes that are already in the path
+      if (insertions[node.startCoord].contains(node)) return exclude;
 
-    // TODO : Find rails in [world] and add explore them too, even if we don't
-    //  add a rail
-    // Remove options that lead to a rail we've already been to
-    options = options.where((rail) {
-      final connection = newConnectionOf(rail);
-      final targetCell = connection.targetCell;
+      /// Remove nodes that lead to somewhere we've already visited, unless its
+      /// a shortcut.
+      final exploredNodes = insertions.map.values.flattened;
+      final duplicate = exploredNodes.firstWhereOrNull((other) {
+        return other.end._info == node.end._info;
+      });
+      if (duplicate != null) {
+        final dupePath = _pathOf(duplicate);
+        final ourPath = _pathOf(node).toList();
+        _pathCache[node] = ourPath;
 
-      // Don't exclude connections that complete the path :)
-      if (targetCell == toCell && connection.targetAngle == to.angle) {
-        return true;
+        // Found a shortcut, remove duplicate
+        if (lengthOf(dupePath) > lengthOf(ourPath)) {
+          insertions.remove(duplicate);
+        } else {
+          return exclude;
+        }
       }
 
-      final rails = [...world.railMap[targetCell], ...insertions[targetCell]];
-      final connections = rails
-          .expand((rail) => [rail.startingConnection, rail.endingConnection]);
-      final matchingConnection = connections.firstWhereOrNull((c) =>
-          c.targetCell == connection.coord + connection.rail.coord &&
-          c.angle == connection.targetAngle);
-      return matchingConnection == null;
+      return !exclude;
     });
 
-    final toInsert = options.toList(); // Not sure why but if this is left as an
-    // iterable it empties itself out.
+    options = options.map((PathNode node) {
+      bool isDuplicateOf(Rail rail) {
+        final other =
+            (start: rail.startingConnection, end: rail.endingConnection);
+        if (node.start._info == other.start._info &&
+            node.end._info == other.end._info) return true;
+        if (node.start._info == other.end._info &&
+            node.end._info == other.start._info) return true;
+        return false;
+      }
 
-    await insertions.addAllRails(toInsert);
-    final newConnections = toInsert.map(newConnectionOf);
-    openConnections.addAll(newConnections);
+      final duplicateNode =
+          insertions[node.startCoord].firstWhereOrNull((other) {
+        assert(node != other);
+        return isDuplicateOf(other.rail);
+      });
+      if (duplicateNode != null) {
+        return PathNode(duplicateNode.rail, start: duplicateNode.end);
+      }
+      final duplicateRail =
+          world.railMap[node.startCoord].firstWhereOrNull(isDuplicateOf);
+      if (duplicateRail != null) {
+        bool reversed =
+            node.start._info != duplicateRail.startingConnection._info;
+        return PathNode(
+          duplicateRail,
+          start: reversed
+              ? duplicateRail.endingConnection
+              : duplicateRail.startingConnection,
+        );
+      }
 
-    openConnections = openConnections.sortedBy<num>(heuristic);
-    return newConnections.toList();
+      return node;
+    });
+
+    // Not sure why but if this is left as an iterable it empties itself out.
+    final toInsert = options.toList();
+
+    insertions.addAll(toInsert);
+    nodesToExplore.addAll(toInsert);
+
+    try {
+      nodesToExplore = nodesToExplore.sortedBy<num>(heuristic);
+    } on StateError catch (_) {
+      debugPrint(
+          "Failed to sort rails;\n${RailMap.drawRails(toInsert.map((n) => n.rail))}");
+      rethrow;
+    }
+    return toInsert;
   }
 
-  double heuristic(RailConnection connection) {
+  double heuristic(PathNode node) {
     // TODO : Add a penalty based on the speed limit of the rail.  IE. bends
     //  will be heavily dis-favored since they require sharp turns.
 
-    var path = _pathOf(connection);
-    if (_pathCache[connection] == null) {
-      _pathCache[connection] ??= path.toList();
+    final connection = node.end;
+    var path = _pathOf(node);
+    if (_pathCache[node] == null) {
+      _pathCache[node] ??= path.toList();
     }
-    // Only grab the rails we're adding; existing rails don't count towards the
-    // heuristic
-    path = path.whereNot((rail) => world.railMap[rail.coord].contains(rail));
 
-    final lengthPenalty = .5 * path.totalLength / cellSize;
+    final lengthPenalty = lengthOf(path) / cellSize;
 
     final endPos = (to.coord + to.rail.coord).toVector();
     final currPos = (connection.coord + connection.rail.coord).toVector();
-    final distancePenalty = currPos.distanceTo(endPos);
+    var distancePenalty = currPos.distanceTo(endPos);
 
     final directionToTarget =
         (toCell - (connection.coord + connection.rail.coord))
@@ -171,52 +244,195 @@ class AStarBuilder {
         ? turns * wrongDirectionPenalty.cost
         : 0;
 
-    final totalPenalty = turnPenalty + lengthPenalty + distancePenalty;
+    final totalPenalty =
+        turnPenalty + lengthPenalty + (distanceModifier * distancePenalty);
     return totalPenalty;
   }
 
-  final Map<RailConnection, List<Rail>> _pathCache = {};
+  final Map<PathNode, List<Rail>> _pathCache = {};
 
   /// Backtracks along the rail to find the original [from] rail.
-  Iterable<Rail> _pathOf(RailConnection connection) sync* {
-    if (_pathCache[connection] != null) {
-      yield* _pathCache[connection]!;
+  Iterable<Rail> _pathOf(PathNode node) sync* {
+    if (_pathCache[node] != null) {
+      yield* _pathCache[node]!;
       return;
     }
 
-    RailConnection from = connection;
-    Rail current = from.rail;
+    yield node.rail;
 
-    yield current;
-    while (current != this.from.rail) {
-      final partner = from.partner;
-      RailConnection? activeConnection = partner.activeConnection;
-      if (partner.activeConnection == null) {
-        activeConnection = _connectionFromMap(partner);
-      }
-      assert(
-          activeConnection != null, "Hit a dead end looking for ${this.from}");
-      from = activeConnection!;
-      current = from.rail;
-      if (_pathCache[from] != null) {
-        yield* _pathCache[from]!;
-        return;
-      }
-      yield current;
+    if (node.rail == from.rail) return;
+
+    final previous = insertions.nodeOf(node, backTrack: true);
+    assert(previous != node);
+    if (previous == null) {
+      throw StateError(
+        "Hit a dead end back-tracking from ${node.start} to $from",
+      );
     }
-    yield from.rail;
+    yield* _pathOf(previous);
   }
 
-  RailConnection? _connectionFromMap(RailConnection connection) {
-    final targetCell = connection.targetCell;
-    final rails = world.railMap[targetCell];
-    final connections = rails
-        .expand((rail) => [rail.startingConnection, rail.endingConnection]);
-    return connections
-        .firstWhereOrNull((c) => c.angle == connection.targetAngle);
+  double lengthOf(Iterable<Rail> path) {
+    double total = 0;
+    for (final rail in path) {
+      double length = rail.metric.length;
+
+      bool inWorld = world.railMap[rail.coord].contains(rail);
+      if (inWorld) {
+        length *= prebuiltModifier;
+      }
+
+      total += length;
+    }
+    return total;
   }
 }
 
-extension PathLength on Iterable<Rail> {
-  double get totalLength => map((rail) => rail.metric.length).sum;
+typedef _ConnectionInfo = ({CellCoord coord, double targetAngle});
+
+extension _Info on RailConnection {
+  _ConnectionInfo get _info =>
+      (coord: coord + rail.coord, targetAngle: targetAngle);
+}
+
+class PathNode {
+  PathNode(this.rail, {required this.start})
+      : end = start == rail.startingConnection
+            ? rail.endingConnection
+            : rail.startingConnection;
+
+  PathNode.to(this.rail, {required this.end})
+      : start = end == rail.endingConnection
+            ? rail.startingConnection
+            : rail.endingConnection;
+
+  final Rail rail;
+
+  final RailConnection start;
+  final RailConnection end;
+
+  late final CellCoord startCoord = start.coord + start.rail.coord;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! PathNode) return false;
+    return (start._info, end._info) == (other.start._info, other.end._info);
+  }
+
+  @override
+  int get hashCode => Object.hashAll([start._info, end._info]);
+
+  @override
+  String toString() {
+    return "$end";
+  }
+}
+
+class NodeMap {
+  NodeMap();
+
+  Map<CellCoord, List<PathNode>> map = {};
+
+  List<PathNode> operator [](CellCoord coord) {
+    return [...?map[coord]];
+  }
+
+  void addAll(Iterable<PathNode> nodes) {
+    for (final node in nodes) {
+      add(node);
+    }
+  }
+
+  void add(PathNode node) {
+    // Register rail at each cell
+    for (final cell in node.rail.shape
+        .transform(node.rail.coord, angle: node.rail.angle)
+        .cells) {
+      map.register(cell, node);
+    }
+  }
+
+  bool remove(PathNode node) {
+    // Remove rail from each cell
+    bool removed = true;
+    for (final cell in node.rail.shape
+        .transform(node.rail.coord, angle: node.rail.angle)
+        .cells) {
+      removed &= map.unregister(cell, node);
+    }
+    return removed;
+  }
+
+  PathNode? nodeOf(PathNode node, {bool backTrack = false}) {
+    final connection = backTrack ? node.start : node.end;
+    final nodes = this[connection.targetCell];
+    final info = connection._info;
+    final found = nodes.firstWhereOrNull((node) {
+      final oConnection = backTrack ? node.end : node.start;
+      final oInfo = oConnection._info;
+      if (oInfo.coord == connection.targetCell &&
+          oConnection.angle == info.targetAngle) {
+        return true;
+      }
+      return false;
+    });
+    return found;
+  }
+
+  String draw() {
+    final rails = map.values.flattened.map((n) => n.rail).toList();
+    if (rails.isEmpty) return "";
+
+    return RailMap.drawRails(rails, map.map((coord, nodes) {
+      return MapEntry(coord, nodes.map((n) => n.rail).toList());
+    }));
+  }
+
+  static String drawRails(Iterable<Rail> rails,
+      [Map<CellCoord, List<Rail>>? map]) {
+    if (map == null) {
+      map = <CellCoord, List<Rail>>{};
+      for (final rail in rails) {
+        for (final cell
+            in rail.shape.transform(rail.coord, angle: rail.angle).cells) {
+          map.register(cell, rail);
+        }
+      }
+    }
+
+    final cells = rails
+        .expand(
+            (rail) => rail.shape.transform(rail.coord, angle: rail.angle).cells)
+        .toList();
+    final worldShape = CellShape(cells);
+    final (min, max) = worldShape.bounds;
+    final yRange = max.y - min.y + 1;
+    final xRange = max.x - min.x + 1;
+    List<List<String>> shapes = List.generate(
+      yRange,
+      (index) => List.filled(xRange, "  "),
+    );
+    for (int y = 0; y <= yRange; y++) {
+      for (int x = 0; x <= xRange; x++) {
+        final coord = CellCoord(x + min.x, max.y - y);
+        final rails = map[coord];
+        if (rails?.isEmpty ?? true) continue;
+        rails!;
+        if (rails.length > 1) {
+          shapes[y][x] = "▣ ";
+        } else if (rails.single.coord != coord) {
+          shapes[y][x] = "▢ ";
+        } else {
+          shapes[y][x] = switch (rails.single.angle) {
+            < pi / 2 => "▷ ",
+            < pi => "△ ",
+            < 3 * pi / 2 => "◁ ",
+            _ => "▽ ",
+          };
+        }
+      }
+    }
+    return shapes.map((row) => row.join()).join("\n");
+  }
 }

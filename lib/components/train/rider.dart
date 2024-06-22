@@ -86,16 +86,16 @@ class Rider extends SpriteComponent with HasGameReference {
   }
 
   void onConnectionTraversed(RailConnection connection) {
-    if (isTail) {
-      connection.locked = false;
-    } else {
-      connection.locked = true;
-    }
-
     if (isDriver && !connection.locked) {
       if (steering != null && connection.connections.length > 1) {
         connection.setActive(steering!);
       }
+    }
+
+    if (isTail) {
+      connection.locked = false;
+    } else {
+      connection.locked = true;
     }
   }
 

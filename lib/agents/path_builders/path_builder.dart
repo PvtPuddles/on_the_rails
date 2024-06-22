@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flame/extensions.dart';
+import 'package:flutter/material.dart';
 import 'package:on_the_rails/components/rails/shapes.dart';
 import 'package:on_the_rails/world/world.dart';
 

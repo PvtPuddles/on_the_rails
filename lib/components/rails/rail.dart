@@ -324,7 +324,7 @@ class RailMap extends Component with HasGameRef {
         } else if (rails.single.coord != coord) {
           shapes[y][x] = "▢ ";
         } else {
-          shapes[y][x] = switch (rails.single.angle) {
+          shapes[y][x] = switch (rails.single.angle % (2 * pi)) {
             < pi / 2 => "▷ ",
             < pi => "△ ",
             < 3 * pi / 2 => "◁ ",
